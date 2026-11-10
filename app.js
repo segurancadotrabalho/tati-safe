@@ -163,6 +163,36 @@
     'Escavação':['Capacete de segurança','Óculos de segurança','Luvas adequadas ao material e à tarefa','Calçado de segurança adequado ao terreno','Colete de alta visibilidade quando houver circulação de máquinas','Proteção respiratória conforme avaliação de poeiras/contaminantes'],
     'Outros':['Capacete conforme avaliação de risco','Óculos de segurança conforme risco','Luvas adequadas ao risco','Calçado de segurança adequado','Proteção auditiva e respiratória conforme avaliação']
   };
+  const checklistByEquipment = {
+    'PTA': [
+      ['pta_inspecao','A PTA passou por inspeção pré-uso e não apresenta danos, vazamentos ou falhas?'],
+      ['pta_operador','O operador está capacitado, autorizado e familiarizado com o modelo da plataforma?'],
+      ['pta_solo','O piso está firme, nivelado e suporta a carga e as condições de operação?'],
+      ['pta_area','Foram avaliados obstáculos, redes elétricas, tráfego e riscos de aprisionamento/esmagamento?'],
+      ['pta_cinto','O trabalhador utiliza o sistema de proteção contra quedas no ponto indicado pelo fabricante?'],
+      ['pta_capacidade','A capacidade de pessoas, ferramentas e materiais não será ultrapassada?'],
+      ['pta_controle','Os comandos de solo e de emergência foram testados e há pessoa preparada para operação de emergência?']
+    ],
+    'Escadas': [
+      ['escada_estado','A escada está íntegra, sem degraus soltos, trincas, deformações ou improvisos?'],
+      ['escada_apoio','A escada está apoiada em superfície firme, estável e posicionada corretamente?'],
+      ['escada_fixacao','A escada está fixada ou estabilizada contra escorregamento e deslocamento?'],
+      ['escada_eletrica','Foi avaliado o risco elétrico e selecionada escada de material compatível quando necessário?'],
+      ['escada_uso','A escada é adequada à tarefa, sem sobrealcance ou esforço que comprometa o equilíbrio?'],
+      ['escada_inspecao','A escada está identificada, dentro das condições de uso e foi inspecionada antes da atividade?'],
+      ['escada_area','A área inferior está protegida contra circulação de pessoas e impacto de portas/veículos?']
+    ],
+    'Andaimes': [
+      ['andaime_montagem','O andaime foi montado, alterado e liberado por trabalhador qualificado/autorizado?'],
+      ['andaime_base','A base está firme, nivelada e com sapatas e apoios adequados?'],
+      ['andaime_piso','Os pisos de trabalho estão completos, fixados, nivelados e sem aberturas perigosas?'],
+      ['andaime_guarda','Há guarda-corpo, rodapé e proteção contra quedas conforme a configuração aplicável?'],
+      ['andaime_acesso','O acesso ao andaime é seguro, por meio apropriado e sem escalada pela estrutura?'],
+      ['andaime_inspecao','O andaime foi inspecionado, identificado como liberado e está sem alterações não autorizadas?'],
+      ['andaime_carga','A carga sobre plataformas respeita os limites previstos e os materiais estão organizados?'],
+      ['andaime_estabilidade','A amarração, contraventamento e estabilidade estão adequados à altura e ao local?']
+    ]
+  };
   function checklistItems() {
     const selected=$$('input[name="equipamentos"]:checked').map(el=>el.value);
     const work=$('select[name="tipoTrabalho"]')?.value||'';
