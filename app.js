@@ -241,7 +241,13 @@
   async function closeSignature(confirm) {
     if(!activeSignatureCanvas) return;
     const canvas=activeSignatureCanvas;
-    if(!confirm) canvas.loadSignature(signatureBackup);
+    // Captura o desenho ainda no tamanho grande antes de devolver o canvas ao formulário.
+    let finalSignature = null;
+    if(confirm && canvas.hasSignature) {
+      try { finalSignature = canvas.toDataURL('image/png'); } catch (_) {}
+    } else if(!confirm) {
+      finalSignature = signatureBackup;
+    }
     const preview=canvas.closest('.signature-wrap')?.querySelector('.signature-preview');
     if(preview) preview.appendChild(canvas);
     signatureModal.classList.remove('is-open','force-landscape');
@@ -250,7 +256,15 @@
     signatureBackup=null;
     try { if(screen.orientation?.unlock) screen.orientation.unlock(); } catch (_) {}
     try { if(document.fullscreenElement) await document.exitFullscreen(); } catch (_) {}
-    requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+    // Redimensiona no espaço de prévia e reaplica a imagem depois do redimensionamento,
+    // pois alterar canvas.width/height apaga o conteúdo anterior.
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new Event('resize'));
+      requestAnimationFrame(() => {
+        if(finalSignature) canvas.loadSignature(finalSignature);
+        else canvas.clearSignature();
+      });
+    });
   }
   const checklistBase = [
     ['area','A área foi inspecionada e os riscos do entorno foram identificados e controlados?'],
