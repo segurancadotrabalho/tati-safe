@@ -8,7 +8,7 @@
   <title>TATI SAFE | Gestão de PT</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=tati-safe-v30">
+  <link rel="stylesheet" href="styles.css?v=tati-safe-v31">
 </head>
 <body>
   <div class="app-shell">
@@ -132,9 +132,15 @@
         <div id="runningList" class="record-list"><div class="empty-state">Nenhuma PT em andamento no momento.</div></div>
       </section>
 
-      <section class="page module-placeholder" id="page-aguardando">
-
-        <div class="module-empty"><span class="module-empty-icon">◇</span><h2>Área preparada</h2><p>Este módulo já faz parte da estrutura de navegação. Vamos configurar seus recursos em uma próxima etapa, mantendo o mesmo padrão visual em computador, tablet e celular.</p></div>
+      <section class="page" id="page-aguardando">
+        <div class="section-heading pending-heading"><div><span class="eyebrow">ANÁLISE E APROVAÇÃO</span><h2>Permissões aguardando liberação</h2><p>Confira os dados e as condições de segurança antes de autorizar o início do serviço.</p></div></div>
+        <div class="stats-grid pending-stats">
+          <article class="stat-card"><span class="stat-icon blue">◇</span><span class="stat-label">Aguardando liberação</span><strong id="pendingTotal">0</strong><small>Permissões para analisar</small></article>
+          <article class="stat-card"><span class="stat-icon amber">!</span><span class="stat-label">Com não conformidades</span><strong id="pendingIssues">0</strong><small>Exigem atenção na análise</small></article>
+          <article class="stat-card"><span class="stat-icon green">♙</span><span class="stat-label">Trabalhadores envolvidos</span><strong id="pendingWorkers">0</strong><small>Nas permissões pendentes</small></article>
+        </div>
+        <div class="history-toolbar pending-toolbar"><input id="pendingSearch" type="search" placeholder="Buscar por local, atividade ou responsável..." aria-label="Buscar PTs aguardando liberação"><span id="pendingCount">0 permissões</span></div>
+        <div id="pendingList" class="record-list"><div class="empty-state">Nenhuma PT aguardando liberação.</div></div>
       </section>
 
       <section class="page module-placeholder" id="page-analises">
@@ -196,7 +202,7 @@
       window.setInterval(atualizarDataHora, 1000);
     })();
   </script>
-  <script src="app.js?v=tati-safe-v30"></script>
+  <script src="app.js?v=tati-safe-v31"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
       window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
