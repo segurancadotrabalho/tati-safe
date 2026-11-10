@@ -163,6 +163,31 @@
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    // Relógio independente do app.js para permanecer visível mesmo se outro módulo falhar.
+    (() => {
+      const atualizarDataHora = () => {
+        const data = document.getElementById('clockDate');
+        const hora = document.getElementById('clockTime');
+        const agora = new Date();
+        try {
+          if (data) data.textContent = new Intl.DateTimeFormat('pt-BR', {
+            weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+            timeZone: 'America/Sao_Paulo'
+          }).format(agora);
+          if (hora) hora.textContent = new Intl.DateTimeFormat('pt-BR', {
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false, timeZone: 'America/Sao_Paulo'
+          }).format(agora);
+        } catch (erro) {
+          if (data) data.textContent = agora.toLocaleDateString('pt-BR');
+          if (hora) hora.textContent = agora.toLocaleTimeString('pt-BR', {hour12:false});
+        }
+      };
+      atualizarDataHora();
+      window.setInterval(atualizarDataHora, 1000);
+    })();
+  </script>
   <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
