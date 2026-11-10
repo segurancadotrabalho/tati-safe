@@ -121,9 +121,15 @@
         <div id="historyList" class="record-list"><div class="empty-state">Nenhuma PT cadastrada.</div></div>
       </section>
 
-      <section class="page module-placeholder" id="page-em-andamento">
-
-        <div class="module-empty"><span class="module-empty-icon">◷</span><h2>Área preparada</h2><p>Este módulo já faz parte da estrutura de navegação. Vamos configurar seus recursos em uma próxima etapa, mantendo o mesmo padrão visual em computador, tablet e celular.</p></div>
+      <section class="page" id="page-em-andamento">
+        <div class="section-heading active-work-heading"><div><span class="eyebrow">ACOMPANHAMENTO OPERACIONAL</span><h2>Permissões em execução</h2><p>Acompanhe as atividades que ainda estão em andamento.</p></div><button class="btn btn-primary" type="button" data-go="nova-pt">＋ Nova PT</button></div>
+        <div class="stats-grid active-work-stats">
+          <article class="stat-card"><span class="stat-icon blue">◷</span><span class="stat-label">PTs em andamento</span><strong id="runningTotal">0</strong><small>Permissões não encerradas</small></article>
+          <article class="stat-card"><span class="stat-icon amber">!</span><span class="stat-label">Prazo previsto vencido</span><strong id="runningOverdue">0</strong><small>Precisam de verificação</small></article>
+          <article class="stat-card"><span class="stat-icon green">♙</span><span class="stat-label">Trabalhadores envolvidos</span><strong id="runningWorkers">0</strong><small>Nas atividades em execução</small></article>
+        </div>
+        <div class="history-toolbar running-toolbar"><input id="runningSearch" type="search" placeholder="Buscar por local, atividade ou responsável..." aria-label="Buscar PTs em andamento"><span id="runningCount">0 permissões</span></div>
+        <div id="runningList" class="record-list"><div class="empty-state">Nenhuma PT em andamento no momento.</div></div>
       </section>
 
       <section class="page module-placeholder" id="page-aguardando">
