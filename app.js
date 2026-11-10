@@ -5,6 +5,8 @@
   const $$ = (selector, root=document) => [...root.querySelectorAll(selector)];
   let workers = 0;
   let historyStatusFilter = 'todos';
+  let runningMetricFilter = 'all';
+  let pendingMetricFilter = 'all';
   const readRecords = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; } };
   const saveRecords = records => localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -563,8 +565,10 @@
     $('#pendingTotal').textContent=pending.length;
     $('#pendingIssues').textContent=issues;
     $('#pendingWorkers').textContent=workers;
-    const filtered=pending.filter(r=>[r.local,r.servico,r.tipoTrabalho,r.responsavelExecucao,r.responsavelArea,r.seguranca,...(r.trabalhadores||[]).map(p=>p.nome)].join(' ').toLocaleLowerCase('pt-BR').includes(term));
-    $('#pendingCount').textContent=filtered.length+' de '+pending.length+' permissão(ões)';
+    const metricFiltered=pending.filter(r=>pendingMetricFilter==='issues'?(r.checklist||[]).some(item=>item.status==='nao_conforme'):pendingMetricFilter==='workers'?(r.trabalhadores||[]).length>0:true);
+    const filtered=metricFiltered.filter(r=>[r.local,r.servico,r.tipoTrabalho,r.responsavelExecucao,r.responsavelArea,r.seguranca,...(r.trabalhadores||[]).map(p=>p.nome)].join(' ').toLocaleLowerCase('pt-BR').includes(term));
+    const pendingFilterLabel=pendingMetricFilter==='issues'?'com não conformidades':pendingMetricFilter==='workers'?'com trabalhadores':'';
+    $('#pendingCount').innerHTML=filtered.length+' de '+metricFiltered.length+' permissão(ões)'+(pendingMetricFilter!=='all'?' · '+pendingFilterLabel+' <button type="button" class="metric-clear" data-clear-metric="pending">Limpar filtro</button>':'');
     $('#pendingList').innerHTML=filtered.length?filtered.map(r=>{
       const nonconformities=(r.checklist||[]).filter(item=>item.status==='nao_conforme');
       const unanswered=(r.checklist||[]).filter(item=>!item.status);
@@ -592,8 +596,10 @@
     $('#runningTotal').textContent=active.length;
     $('#runningOverdue').textContent=overdue.length;
     $('#runningWorkers').textContent=workers;
-    const filtered=active.filter(r=>[r.local,r.servico,r.tipoTrabalho,r.responsavelExecucao,r.responsavelArea,r.seguranca,...(r.trabalhadores||[]).map(p=>p.nome)].join(' ').toLocaleLowerCase('pt-BR').includes(term));
-    $('#runningCount').textContent=filtered.length+' de '+active.length+' permissão(ões)';
+    const metricFiltered=active.filter(r=>runningMetricFilter==='overdue'?(r.dataFim && new Date(r.dataFim)<now):runningMetricFilter==='workers'?(r.trabalhadores||[]).length>0:true);
+    const filtered=metricFiltered.filter(r=>[r.local,r.servico,r.tipoTrabalho,r.responsavelExecucao,r.responsavelArea,r.seguranca,...(r.trabalhadores||[]).map(p=>p.nome)].join(' ').toLocaleLowerCase('pt-BR').includes(term));
+    const runningFilterLabel=runningMetricFilter==='overdue'?'com prazo vencido':runningMetricFilter==='workers'?'com trabalhadores':'';
+    $('#runningCount').innerHTML=filtered.length+' de '+metricFiltered.length+' permissão(ões)'+(runningMetricFilter!=='all'?' · '+runningFilterLabel+' <button type="button" class="metric-clear" data-clear-metric="running">Limpar filtro</button>':'');
     $('#runningList').innerHTML=filtered.length?filtered.map(r=>{
       const isOverdue=r.dataFim && new Date(r.dataFim)<now;
       const start=formatDate(r.dataInicio);
@@ -609,6 +615,16 @@
     }).join(''):'<div class="empty-state">'+(active.length?'Nenhuma PT corresponde à sua busca.':'Nenhuma PT em andamento no momento. As permissões salvas como em andamento aparecerão aqui.')+'</div>';
     bindRecordCards('#runningList');
   }
+  document.addEventListener('click',event=>{
+    const metric=event.target.closest('[data-metric-filter]');
+    if(metric){
+      if(metric.dataset.metricFilter.startsWith('running:')){runningMetricFilter=metric.dataset.metricFilter.split(':')[1];$('#runningSearch').value='';renderRunning();}
+      if(metric.dataset.metricFilter.startsWith('pending:')){pendingMetricFilter=metric.dataset.metricFilter.split(':')[1];$('#pendingSearch').value='';renderPending();}
+      return;
+    }
+    const clear=event.target.closest('[data-clear-metric]');
+    if(clear){if(clear.dataset.clearMetric==='running'){runningMetricFilter='all';renderRunning();}else{pendingMetricFilter='all';renderPending();}}
+  });
   $('#historySearch').addEventListener('input',renderHistory);
   $('#runningSearch').addEventListener('input',renderRunning);
   $('#pendingSearch').addEventListener('input',renderPending);
