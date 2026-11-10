@@ -80,15 +80,21 @@
             </div>
           </section>
 
+          <section class="form-panel epi-panel">
+            <div class="panel-title"><span class="step-number">03</span><div><h2>EPIs necessários para a atividade</h2><p>Lista sugerida conforme o serviço e os equipamentos. Revise conforme a APR e os riscos reais.</p></div></div>
+            <div id="activityEpiList" class="activity-epi-list"></div>
+            <label class="field epi-extra-field">EPIs adicionais necessários<input id="epiExtra" type="text" placeholder="Digite outros EPIs, separados por vírgula"></label>
+            <p class="hint">A lista será utilizada para conferir individualmente cada trabalhador.</p>
+          </section>
           <section class="form-panel checklist-panel">
-            <div class="panel-title"><span class="step-number">03</span><div><h2>Checklist de segurança</h2><p>Avalie as condições antes de liberar o serviço. Todos os itens devem ser respondidos.</p></div></div>
+            <div class="panel-title"><span class="step-number">04</span><div><h2>Checklist de segurança</h2><p>Avalie as condições antes de liberar o serviço. Todos os itens devem ser respondidos.</p></div></div>
             <div class="checklist-legend"><span><i class="legend-dot ok"></i> Conforme</span><span><i class="legend-dot no"></i> Não conforme</span><span><i class="legend-dot na"></i> Não se aplica</span></div>
             <div id="safetyChecklist"></div>
             <div id="checklistSummary" class="checklist-summary" aria-live="polite">Responda aos itens para concluir a avaliação.</div>
           </section>
 
           <section class="form-panel">
-            <div class="panel-title"><span class="step-number">04</span><div><h2>Responsáveis</h2><p>Identifique as pessoas responsáveis pela atividade e liberação.</p></div></div>
+            <div class="panel-title"><span class="step-number">05</span><div><h2>Responsáveis</h2><p>Identifique as pessoas responsáveis pela atividade e liberação.</p></div></div>
             <div class="form-grid">
               <label class="field">Responsável pela execução<input name="responsavelExecucao" required placeholder="Nome completo"></label>
               <label class="field">Responsável pela área<input name="responsavelArea" required placeholder="Nome completo"></label>
@@ -97,13 +103,13 @@
           </section>
 
           <section class="form-panel">
-            <div class="panel-title"><span class="step-number">05</span><div><h2>Trabalhadores envolvidos</h2><p>Cadastre os trabalhadores, pressão arterial e assinatura.</p></div></div>
+            <div class="panel-title"><span class="step-number">06</span><div><h2>Trabalhadores envolvidos</h2><p>Cadastre os trabalhadores, pressão arterial e assinatura.</p></div></div>
             <div id="workersList"></div>
             <button type="button" class="btn btn-secondary" id="addWorker">＋ Adicionar trabalhador</button>
           </section>
 
           <section class="form-panel">
-            <div class="panel-title"><span class="step-number">06</span><div><h2>Observações gerais</h2><p>Registre informações adicionais relevantes para a liberação.</p></div></div>
+            <div class="panel-title"><span class="step-number">07</span><div><h2>Observações gerais</h2><p>Registre informações adicionais relevantes para a liberação.</p></div></div>
             <label class="field">Observações<textarea name="observacoes" rows="4" placeholder="Condições especiais, recomendações e observações..."></textarea></label>
           </section>
           <div class="form-actions"><button type="button" class="btn btn-secondary" data-go="inicio">Cancelar</button><button class="btn btn-primary" type="submit">Salvar Permissão de Trabalho</button></div>
