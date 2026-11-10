@@ -12,7 +12,7 @@
   function navigate(page) {
     $$('.page').forEach(el=>el.classList.toggle('active',el.id===`page-${page}`));
     $$('.nav-link').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
-    const labels={'inicio':'Visão geral','nova-pt':'Nova Permissão de Trabalho','historico':'Histórico de PTs'};
+    const labels={'inicio':'Painel inicial','nova-pt':'Nova Permissão de Trabalho','em-andamento':'PTs em andamento','aguardando':'Aguardando liberação','encerradas':'PTs encerradas','historico':'Histórico de PTs','analises':'Análises e APR','checklists':'Checklists de segurança','trabalhadores':'Trabalhadores','relatorios':'Relatórios','notificacoes':'Notificações','configuracoes':'Configurações'};
     $('#pageHeading').textContent=labels[page] || 'TATI SAFE';
     $('#sidebar').classList.remove('open');
     if(page==='historico') renderHistory();
