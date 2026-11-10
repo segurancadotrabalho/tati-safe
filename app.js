@@ -50,6 +50,8 @@
     const ctx = canvas.getContext('2d');
     let drawing = false, signed = false, lastPoint = null;
     let activePointerId = null;
+    let signatureData = null;
+    let redrawToken = 0;
 
     const ratioNow = () => Math.max(1, window.devicePixelRatio || 1);
     const configureContext = () => {
@@ -60,64 +62,64 @@
       ctx.lineJoin = 'round';
       ctx.strokeStyle = '#183c59';
     };
-
+    const drawSaved = (data, token) => {
+      if (!data) return;
+      const image = new Image();
+      image.onload = () => {
+        if (token !== redrawToken) return;
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        configureContext();
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        ctx.drawImage(image, 0, 0, rect.width, rect.height);
+      };
+      image.src = data;
+    };
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
       if (!rect.width || !rect.height) return false;
-
       const ratio = ratioNow();
       const width = Math.round(rect.width * ratio);
       const height = Math.round(rect.height * ratio);
       if (canvas.width === width && canvas.height === height) return true;
-
-      const previous = signed ? canvas.toDataURL('image/png') : null;
+      // A assinatura fica guardada fora do bitmap, que é apagado ao redimensionar.
+      if (signed && !signatureData) {
+        try { signatureData = canvas.toDataURL('image/png'); } catch (_) {}
+      }
       canvas.width = width;
       canvas.height = height;
       configureContext();
-
-      if (previous) {
-        const image = new Image();
-        image.onload = () => ctx.drawImage(image, 0, 0, rect.width, rect.height);
-        image.src = previous;
-      }
+      const token = ++redrawToken;
+      if (signed && signatureData) drawSaved(signatureData, token);
       return true;
     };
-
     const point = event => {
       const rect = canvas.getBoundingClientRect();
       return { x: event.clientX - rect.left, y: event.clientY - rect.top };
     };
-
     const start = event => {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
       if (event.cancelable) event.preventDefault();
-
-      // O formulário pode ter sido criado enquanto sua página estava oculta.
-      // Dimensiona o canvas no primeiro toque/clique, quando ele já está visível.
       if (!resize()) return;
-
       const p = point(event);
       drawing = true;
       signed = true;
       lastPoint = p;
       activePointerId = event.pointerId ?? null;
       canvas.dataset.signed = 'true';
-
       if (activePointerId !== null && canvas.setPointerCapture) {
         try { canvas.setPointerCapture(activePointerId); } catch (_) {}
       }
-
       configureContext();
       ctx.beginPath();
       ctx.arc(p.x, p.y, 1.4, 0, Math.PI * 2);
       ctx.fillStyle = '#183c59';
       ctx.fill();
+      signatureData = null;
     };
-
     const move = event => {
       if (!drawing) return;
       if (event.cancelable) event.preventDefault();
-
       const p = point(event);
       configureContext();
       ctx.beginPath();
@@ -126,54 +128,51 @@
       ctx.stroke();
       lastPoint = p;
     };
-
     const stop = event => {
       if (activePointerId !== null && event?.pointerId !== undefined &&
           event.pointerId !== activePointerId) return;
-      drawing = false;
-      lastPoint = null;
-      activePointerId = null;
+      if (drawing) {
+        drawing = false;
+        lastPoint = null;
+        activePointerId = null;
+        try { signatureData = canvas.toDataURL('image/png'); } catch (_) {}
+      }
     };
 
     canvas.style.touchAction = 'none';
     canvas.style.pointerEvents = 'auto';
     canvas.style.userSelect = 'none';
     canvas.style.webkitUserSelect = 'none';
-
     if (window.PointerEvent) {
       canvas.addEventListener('pointerdown', start, { passive: false });
       canvas.addEventListener('pointermove', move, { passive: false });
-      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(name =>
-        canvas.addEventListener(name, stop)
-      );
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(name => canvas.addEventListener(name, stop));
     } else {
-      // Compatibilidade com navegadores antigos sem Pointer Events.
       canvas.addEventListener('mousedown', start);
       window.addEventListener('mousemove', move);
       window.addEventListener('mouseup', stop);
       canvas.addEventListener('touchstart', event => {
-        const touch = event.changedTouches[0];
-        if (touch) start({ clientX: touch.clientX, clientY: touch.clientY, cancelable: true, preventDefault: () => event.preventDefault() });
-      }, { passive: false });
+        const touch=event.changedTouches[0];
+        if(touch) start({clientX:touch.clientX,clientY:touch.clientY,cancelable:true,preventDefault:()=>event.preventDefault()});
+      },{passive:false});
       canvas.addEventListener('touchmove', event => {
-        const touch = event.changedTouches[0];
-        if (touch) move({ clientX: touch.clientX, clientY: touch.clientY, cancelable: true, preventDefault: () => event.preventDefault() });
-      }, { passive: false });
+        const touch=event.changedTouches[0];
+        if(touch) move({clientX:touch.clientX,clientY:touch.clientY,cancelable:true,preventDefault:()=>event.preventDefault()});
+      },{passive:false});
       canvas.addEventListener('touchend', stop);
       canvas.addEventListener('touchcancel', stop);
     }
-
     if ('ResizeObserver' in window) {
       const observer = new ResizeObserver(() => resize());
       observer.observe(canvas);
-    } else {
-      window.addEventListener('resize', resize);
-    }
-
+    } else window.addEventListener('resize', resize);
     requestAnimationFrame(resize);
+
     canvas.dataset.signed = 'false';
     canvas.clearSignature = () => {
+      redrawToken++;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      signatureData = null;
       signed = false;
       drawing = false;
       lastPoint = null;
@@ -182,25 +181,25 @@
     };
     Object.defineProperty(canvas, 'hasSignature', { get: () => signed });
     canvas.loadSignature = dataUrl => {
-      if (!dataUrl) { canvas.clearSignature(); return; }
-      const image = new Image();
-      image.onload = () => {
-        const rect = canvas.getBoundingClientRect();
-        if (!rect.width || !rect.height) return;
-        canvas.width = Math.round(rect.width * ratioNow());
-        canvas.height = Math.round(rect.height * ratioNow());
-        configureContext();
-        ctx.drawImage(image, 0, 0, rect.width, rect.height);
-        signed = true;
-        canvas.dataset.signed = 'true';
-      };
-      image.src = dataUrl;
+      redrawToken++;
+      signatureData = dataUrl || null;
+      signed = !!dataUrl;
+      drawing = false;
+      lastPoint = null;
+      activePointerId = null;
+      canvas.dataset.signed = String(signed);
+      if (!dataUrl) { ctx.clearRect(0, 0, canvas.width, canvas.height); return; }
+      requestAnimationFrame(() => {
+        resize();
+        const token = ++redrawToken;
+        drawSaved(signatureData, token);
+      });
     };
   }
-
   let activeSignatureCanvas = null;
   let signatureBackup = null;
   let signatureModal = null;
+  let signatureClosing = false;
   function ensureSignatureModal() {
     if (signatureModal) return signatureModal;
     signatureModal = document.createElement('section');
@@ -218,53 +217,48 @@
     return signatureModal;
   }
   async function openSignature(canvas) {
+    if (signatureClosing) return;
+    if (activeSignatureCanvas) return;
     const modal=ensureSignatureModal();
     activeSignatureCanvas=canvas;
     signatureBackup=canvas.hasSignature?canvas.toDataURL('image/png'):null;
-    const host=modal.querySelector('.signature-fullscreen-canvas');
-    host.appendChild(canvas);
-    modal.classList.add('is-open');
+    modal.classList.remove('force-landscape');
+    modal.querySelector('.signature-fullscreen-canvas').appendChild(canvas);
     document.body.classList.add('signature-lock-scroll');
+    modal.classList.add('is-open');
+    // O fallback visual é aplicado imediatamente; não depende de a API de orientação existir.
+    if(window.matchMedia('(orientation: portrait)').matches && !screen.orientation?.lock) {
+      modal.classList.add('force-landscape');
+    }
     requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
     try {
-      if(modal.requestFullscreen) await modal.requestFullscreen();
-      if(screen.orientation?.lock) {
-        await screen.orientation.lock('landscape');
-      } else if(window.matchMedia('(orientation: portrait)').matches) {
-        modal.classList.add('force-landscape');
-      }
+      if(modal.requestFullscreen && !document.fullscreenElement) await modal.requestFullscreen();
+      if(screen.orientation?.lock) await screen.orientation.lock('landscape');
     } catch (_) {
-      // Em navegadores sem bloqueio de orientação, gira visualmente a área de assinatura.
       if(window.matchMedia('(orientation: portrait)').matches) modal.classList.add('force-landscape');
     }
   }
   async function closeSignature(confirm) {
-    if(!activeSignatureCanvas) return;
+    if(!activeSignatureCanvas || signatureClosing) return;
+    signatureClosing=true;
     const canvas=activeSignatureCanvas;
-    // Captura o desenho ainda no tamanho grande antes de devolver o canvas ao formulário.
-    let finalSignature = null;
+    let finalSignature=null;
     if(confirm && canvas.hasSignature) {
-      try { finalSignature = canvas.toDataURL('image/png'); } catch (_) {}
-    } else if(!confirm) {
-      finalSignature = signatureBackup;
-    }
+      try { finalSignature=canvas.toDataURL('image/png'); } catch (_) {}
+    } else if(!confirm) finalSignature=signatureBackup;
     const preview=canvas.closest('.signature-wrap')?.querySelector('.signature-preview');
+    activeSignatureCanvas=null;
+    signatureBackup=null;
     if(preview) preview.appendChild(canvas);
     signatureModal.classList.remove('is-open','force-landscape');
     document.body.classList.remove('signature-lock-scroll');
-    activeSignatureCanvas=null;
-    signatureBackup=null;
     try { if(screen.orientation?.unlock) screen.orientation.unlock(); } catch (_) {}
     try { if(document.fullscreenElement) await document.exitFullscreen(); } catch (_) {}
-    // Redimensiona no espaço de prévia e reaplica a imagem depois do redimensionamento,
-    // pois alterar canvas.width/height apaga o conteúdo anterior.
-    requestAnimationFrame(() => {
-      window.dispatchEvent(new Event('resize'));
-      requestAnimationFrame(() => {
-        if(finalSignature) canvas.loadSignature(finalSignature);
-        else canvas.clearSignature();
-      });
-    });
+    // Aguarda o canvas voltar ao tamanho da prévia e restaura a imagem persistida.
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    if(finalSignature) canvas.loadSignature(finalSignature);
+    else canvas.clearSignature();
+    signatureClosing=false;
   }
   const checklistBase = [
     ['area','A área foi inspecionada e os riscos do entorno foram identificados e controlados?'],
