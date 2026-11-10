@@ -114,7 +114,7 @@
       const selected=$('input[type="radio"]:checked',card);
       const question=$('.check-question strong',card)?.textContent||'';
       const justification=$('[data-justification]',card)?.value.trim()||'';
-      return {key,pergunta:question,status:selected?.value||'',justificativa};
+      return {key,pergunta:question,status:selected?.value||'',justificativa:justification};
     });
   }
   function updateChecklistSummary() {
