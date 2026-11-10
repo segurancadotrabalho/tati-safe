@@ -12,7 +12,7 @@
   function navigate(page) {
     $$('.page').forEach(el=>el.classList.toggle('active',el.id===`page-${page}`));
     $$('.nav-link').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
-    const labels={'inicio':'Painel inicial','nova-pt':'Nova Permissão de Trabalho','em-andamento':'PTs em andamento','aguardando':'Aguardando liberação','encerradas':'PTs encerradas','historico':'Histórico de PTs','analises':'Análises e APR','checklists':'Checklists de segurança','trabalhadores':'Trabalhadores','relatorios':'Relatórios','notificacoes':'Notificações','configuracoes':'Configurações'};
+    const labels={'inicio':'Painel inicial','nova-pt':'Nova Permissão de Trabalho','em-andamento':'PTs em andamento','aguardando':'Aguardando liberação','historico':'Histórico de PTs','analises':'Análises e APR','checklists':'Checklists de segurança','trabalhadores':'Trabalhadores','relatorios':'Relatórios','notificacoes':'Notificações','configuracoes':'Configurações'};
     $('#pageHeading').textContent=labels[page] || 'TATI SAFE';
     $('#sidebar').classList.remove('open');
     if(page==='historico') renderHistory();
@@ -24,7 +24,6 @@
     if(nav){navigate(nav.dataset.page || nav.dataset.go);}
   });
   $('#menuButton').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
-  $('#menuSearch').addEventListener('input',event=>{const term=event.target.value.toLocaleLowerCase('pt-BR');$('.nav-link').forEach(link=>{link.style.display=link.textContent.toLocaleLowerCase('pt-BR').includes(term)?'flex':'none';});$('.nav-section-label').forEach(label=>{let next=label.nextElementSibling,visible=false;while(next&& !next.classList.contains('nav-section-label')){if(next.classList.contains('nav-link')&&next.style.display!=='none')visible=true;next=next.nextElementSibling;}label.style.display=visible?'block':'none';});});
 
   function addWorker() {
     workers++;
@@ -108,7 +107,7 @@
   function updateClock(){
     const now=new Date();
     const date=$('#clockDate'),time=$('#clockTime');
-    if(date)date.textContent=new Intl.DateTimeFormat('pt-BR',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).format(now);
+    if(date)date.textContent=new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}).format(now);
     if(time)time.textContent=new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(now);
   }
   updateClock();
