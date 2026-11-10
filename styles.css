@@ -277,3 +277,40 @@ body,.main-content{background:var(--canvas);color:var(--ink)}
  .running-record .record-meta{width:100%}
  .running-view{width:100%}
 }
+
+
+/* Página de PTs aguardando liberação */
+.pending-heading{margin-top:2px}
+.pending-heading>div p{margin:6px 0 0;color:var(--muted);font-size:11px;line-height:1.6}
+.pending-stats{margin:18px 0}
+.pending-stats .stat-card{min-height:102px}
+.pending-stats .stat-icon.green{background:#e5f7ef;color:#159568}
+.pending-stats .stat-icon.amber{background:#fff3df;color:#c17a13}
+.pending-toolbar{margin-top:4px}
+.pending-record{align-items:flex-start}
+.pending-record-main{min-width:0;flex:1}
+.pending-record-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:9px}
+.pending-status,.pending-alert{display:inline-flex;align-items:center;gap:6px;border-radius:20px;padding:5px 9px;font-size:9px;font-weight:700}
+.pending-status{background:#fff5df;color:#a66a12}
+.pending-status i{width:6px;height:6px;border-radius:50%;background:#e3a02f}
+.pending-alert{background:#fff0ed;color:#c34d42}
+.pending-record-main>strong{display:block;font:700 13px Manrope,sans-serif;color:#30264b}
+.pending-details{display:flex;gap:22px;flex-wrap:wrap;margin-top:12px}
+.pending-details span{display:flex;flex-direction:column;gap:4px;color:#5e5a70;font-size:10px}
+.pending-details b{color:#928da2;font-size:9px;font-weight:600}
+.pending-service{margin-top:10px!important;max-width:760px}
+.pending-warning{margin-top:9px;padding:9px 11px;border-left:3px solid #e3a02f;border-radius:5px;background:#fff9ed;color:#94621b;font-size:10px;line-height:1.55}
+.pending-actions{display:flex;flex-direction:column;gap:7px;min-width:125px}
+.pending-view,.pending-release{border-radius:8px;padding:10px 12px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap}
+.pending-view{border:1px solid #e4dcf8;background:#f5f0ff;color:#6041c7}
+.pending-release{border:1px solid #14885d;background:#168b60;color:#fff}
+.pending-release:hover{background:#11764f}
+.pending-release span{margin-left:5px}
+@media(max-width:700px){
+ .pending-stats{grid-template-columns:1fr}
+ .pending-stats .stat-card{min-height:82px}
+ .pending-record{gap:12px}
+ .pending-details{gap:12px 18px}
+ .pending-actions{width:100%;min-width:0}
+ .pending-actions button{width:100%}
+}
