@@ -524,15 +524,30 @@
     return `<article class="record-item"><div><strong>${escapeHtml(record.local || 'Local não informado')}</strong><small>${escapeHtml(record.tipoTrabalho || 'Tipo não informado')} · ${escapeHtml(record.responsavelExecucao || 'Responsável não informado')}</small><small>Início: ${formatDate(record.dataInicio)} · ${(record.trabalhadores||[]).length} trabalhador(es)</small></div><div class="record-meta"><span>${escapeHtml(record.status)}</span><div class="record-actions"><button data-view="${escapeHtml(record.id)}">Ver detalhes</button><button class="delete" data-delete="${escapeHtml(record.id)}">Excluir</button></div></div></article>`;
   }
   function renderHistory() {
-    const term=($('#historySearch')?.value||'').toLocaleLowerCase('pt-BR');
-    const records=readRecords().filter(r=>{
-      const matchesText=[r.local,r.servico,r.responsavelExecucao,r.tipoTrabalho].join(' ').toLocaleLowerCase('pt-BR').includes(term);
-      const matchesStatus=historyStatusFilter==='todos' || (historyStatusFilter==='andamento' ? r.status==='Em andamento' : historyStatusFilter==='encerradas' ? r.status==='Encerrada' : r.status==='Aguardando liberação');
-      return matchesText && matchesStatus;
+    const all=readRecords();
+    const count=status=>all.filter(r=>r.status===status).length;
+    $('#historyTotal').textContent=all.length;
+    $('#historyPending').textContent=count('Aguardando liberação');
+    $('#historyRunning').textContent=count('Em andamento');
+    $('#historyClosed').textContent=count('Encerrada');
+    $$('[data-history-filter]').forEach(card=>{
+      const selected=card.dataset.historyFilter===historyStatusFilter;
+      card.classList.toggle('metric-selected',selected);
+      card.setAttribute('aria-pressed',String(selected));
     });
-    const filterLabel=historyStatusFilter==='andamento'?' em andamento':historyStatusFilter==='encerradas'?' encerrada(s)':'';
-    $('#historyCount').textContent=`${records.length} registro(s)${filterLabel}`;
-    $('#historyList').innerHTML=records.length?records.map(recordCard).join(''):'<div class="empty-state">Nenhuma permissão encontrada.</div>';
+    const term=($('#historySearch')?.value||'').trim().toLocaleLowerCase('pt-BR');
+    const filtered=all.filter(r=>{
+      const matchesStatus=historyStatusFilter==='todos' ||
+        (historyStatusFilter==='andamento' && r.status==='Em andamento') ||
+        (historyStatusFilter==='encerradas' && r.status==='Encerrada') ||
+        (historyStatusFilter==='aguardando' && r.status==='Aguardando liberação');
+      const names=(r.trabalhadores||[]).map(p=>p.nome||'').join(' ');
+      const searchable=[r.local,r.servico,r.responsavelExecucao,r.responsavelArea,r.seguranca,r.tipoTrabalho,r.status,names].join(' ').toLocaleLowerCase('pt-BR');
+      return matchesStatus && searchable.includes(term);
+    }).sort((a,b)=>new Date(b.criadoEm||b.dataInicio||0)-new Date(a.criadoEm||a.dataInicio||0));
+    const labels={todos:'todos os status',aguardando:'aguardando liberação',andamento:'em execução',encerradas:'encerradas'};
+    $('#historyCount').textContent=filtered.length+' de '+all.length+' PT(s) · '+(labels[historyStatusFilter]||labels.todos);
+    $('#historyList').innerHTML=filtered.length?filtered.map(recordCard).join(''):'<div class="empty-state"><strong>Nenhuma PT encontrada.</strong><br>Altere o filtro ou a busca para consultar outros registros.</div>';
   }
   function renderDashboard() {
     const records=readRecords();
@@ -612,12 +627,14 @@
           <small>${escapeHtml(r.tipoTrabalho||'Atividade não informada')} · ${escapeHtml(r.responsavelExecucao||'Responsável não informado')}</small>
           <div class="running-details"><span><b>Início</b>${start}</span><span><b>Término previsto</b>${end}</span><span><b>Equipe</b>${(r.trabalhadores||[]).length} trabalhador(es)</span></div>
           <small class="running-service">${escapeHtml(r.servico||'Descrição do serviço não informada')}</small>
-        </div><div class="record-meta"><button class="running-view" type="button" data-view="${escapeHtml(r.id)}">Ver detalhes <span>→</span></button></div>
+        </div><div class="record-meta running-actions"><button class="running-view" type="button" data-view="${escapeHtml(r.id)}">Ver detalhes <span>→</span></button><button class="running-close" type="button" data-close="${escapeHtml(r.id)}">Encerrar PT</button></div>
       </article>`;
     }).join(''):'<div class="empty-state">'+(active.length?'Nenhuma PT corresponde à sua busca.':'Nenhuma PT em andamento no momento. As permissões salvas como em andamento aparecerão aqui.')+'</div>';
     bindRecordCards('#runningList');
   }
   document.addEventListener('click',event=>{
+    const historyMetric=event.target.closest('[data-history-filter]');
+    if(historyMetric){historyStatusFilter=historyMetric.dataset.historyFilter;renderHistory();return;}
     const metric=event.target.closest('[data-metric-filter]');
     if(metric){
       if(metric.dataset.metricFilter.startsWith('running:')){runningMetricFilter=metric.dataset.metricFilter.split(':')[1];$('#runningSearch').value='';renderRunning();}
@@ -628,6 +645,7 @@
     if(clear){if(clear.dataset.clearMetric==='running'){runningMetricFilter='all';renderRunning();}else{pendingMetricFilter='all';renderPending();}}
   });
   $('#historySearch').addEventListener('input',renderHistory);
+  $('#historyPrint')?.addEventListener('click',()=>window.print());
   $('#runningSearch').addEventListener('input',renderRunning);
   $('#pendingSearch').addEventListener('input',renderPending);
   document.addEventListener('click',event=>{
@@ -646,6 +664,16 @@
       record.status='Em andamento';record.liberadoEm=new Date().toISOString();
       saveRecords(records);renderPending();renderRunning();renderDashboard();
       toast('PT liberada e movida para Em andamento.');
+    }
+    const close=event.target.closest('[data-close]');
+    if(close){
+      const records=readRecords();
+      const record=records.find(r=>r.id===close.dataset.close);
+      if(!record || record.status!=='Em andamento')return;
+      if(!confirm('Confirma o encerramento desta Permissão de Trabalho? Ela será registrada no Histórico de PTs.'))return;
+      record.status='Encerrada';record.encerradaEm=new Date().toISOString();
+      saveRecords(records);renderRunning();renderHistory();renderDashboard();
+      toast('PT encerrada e registrada no histórico.');return;
     }
     const del=event.target.closest('[data-delete]');
     if(del){if(!confirm('Deseja realmente excluir esta Permissão de Trabalho?'))return;saveRecords(readRecords().filter(r=>r.id!==del.dataset.delete));renderHistory();renderDashboard();toast('Registro excluído.');return;}
