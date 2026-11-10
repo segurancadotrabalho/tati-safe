@@ -200,6 +200,7 @@
   let signatureBackup = null;
   let signatureModal = null;
   let signatureClosing = false;
+  let activeSignaturePreview = null;
   function ensureSignatureModal() {
     if (signatureModal) return signatureModal;
     signatureModal = document.createElement('section');
@@ -221,6 +222,8 @@
     if (activeSignatureCanvas) return;
     const modal=ensureSignatureModal();
     activeSignatureCanvas=canvas;
+    // Guarda a referência antes de mover o canvas para fora do cartão do trabalhador.
+    activeSignaturePreview=canvas.closest('.signature-wrap')?.querySelector('.signature-preview') || null;
     signatureBackup=canvas.hasSignature?canvas.toDataURL('image/png'):null;
     modal.classList.remove('force-landscape');
     modal.querySelector('.signature-fullscreen-canvas').appendChild(canvas);
@@ -246,9 +249,12 @@
     if(confirm && canvas.hasSignature) {
       try { finalSignature=canvas.toDataURL('image/png'); } catch (_) {}
     } else if(!confirm) finalSignature=signatureBackup;
-    const preview=canvas.closest('.signature-wrap')?.querySelector('.signature-preview');
+    const preview=activeSignaturePreview;
     activeSignatureCanvas=null;
+    activeSignaturePreview=null;
     signatureBackup=null;
+    // Devolve o canvas usando a referência salva na abertura; ele já não tem
+    // .signature-wrap como ancestral enquanto está dentro do modal.
     if(preview) preview.appendChild(canvas);
     signatureModal.classList.remove('is-open','force-landscape');
     document.body.classList.remove('signature-lock-scroll');
