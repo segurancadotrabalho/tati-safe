@@ -53,6 +53,86 @@
     canvas.dataset.signed='false';
     Object.defineProperty(canvas,'hasSignature',{get:()=>signed});
   }
+  const checklistBase = [
+    ['area','A área de trabalho foi inspecionada e está livre de riscos não controlados?'],
+    ['isolamento','A área está isolada e sinalizada para impedir acesso de pessoas não envolvidas?'],
+    ['apr','A análise preliminar de riscos (APR) e as orientações da atividade foram realizadas com a equipe?'],
+    ['epi','Os EPIs necessários foram definidos, estão disponíveis e em boas condições?'],
+    ['ferramentas','As ferramentas e os equipamentos necessários foram inspecionados e estão adequados?'],
+    ['energia','As fontes de energia perigosas foram identificadas e, quando necessário, bloqueadas e identificadas?'],
+    ['emergencia','A equipe conhece os meios de comunicação e o procedimento de emergência aplicável?'],
+    ['condicoes','As condições do ambiente (iluminação, organização, clima e acesso) permitem executar o serviço com segurança?']
+  ];
+  const checklistByEquipment = {
+    'PTA': [
+      ['pta_inspecao','A PTA passou por inspeção antes do uso e não apresenta danos ou falhas aparentes?'],
+      ['pta_operador','O operador está capacitado e autorizado para operar a plataforma?'],
+      ['pta_solo','O piso está firme, nivelado e suporta a operação da plataforma?'],
+      ['pta_area','Há distância segura de redes elétricas, obstáculos e circulação de veículos?'],
+      ['pta_cinto','O sistema de proteção contra quedas e o ponto de ancoragem indicado pelo fabricante estão sendo utilizados?']
+    ],
+    'Escadas': [
+      ['escada_estado','A escada está íntegra, sem degraus soltos, trincas, deformações ou improvisos?'],
+      ['escada_apoio','A escada está apoiada em superfície firme e posicionada de forma estável?'],
+      ['escada_fixacao','A escada está fixada ou estabilizada contra escorregamento e deslocamento?'],
+      ['escada_eletrica','Foi verificado o risco de contato com instalações elétricas e escolhido material compatível?'],
+      ['escada_uso','O uso da escada é adequado à tarefa, sem sobrealcance ou transporte de carga que comprometa o equilíbrio?']
+    ],
+    'Andaimes': [
+      ['andaime_montagem','O andaime foi montado, alterado e liberado por trabalhador qualificado/autorizado?'],
+      ['andaime_base','A base está firme, nivelada e com elementos de apoio adequados?'],
+      ['andaime_piso','Os pisos de trabalho estão completos, fixados e sem aberturas perigosas?'],
+      ['andaime_guarda','Há proteção contra quedas nas laterais e acessos, conforme configuração aplicável?'],
+      ['andaime_acesso','O acesso ao andaime é seguro e independente de subir pela estrutura?'],
+      ['andaime_inspecao','O andaime foi inspecionado antes da utilização e está identificado como liberado?']
+    ]
+  };
+  function checklistItems() {
+    const selected=$('input[name="equipamentos"]:checked').map(el=>el.value);
+    return [...checklistBase,...selected.flatMap(name=>checklistByEquipment[name]||[])];
+  }
+  function renderChecklist() {
+    const host=$('#safetyChecklist'); if(!host)return;
+    const previous=collectChecklist(false);
+    const items=checklistItems();
+    host.innerHTML=items.map(([key,title],index)=>{
+      const old=previous.find(item=>item.key===key)||{};
+      const options=[['conforme','Conforme','ok'],['nao_conforme','Não conforme','no'],['na','Não se aplica','na']];
+      return `<article class="check-item" data-check-item="${key}">
+        <div class="check-question"><span class="check-number">${String(index+1).padStart(2,'0')}</span><strong>${escapeHtml(title)}</strong></div>
+        <div class="check-options">${options.map(([value,label,cls])=>`<label class="check-option ${cls}"><input type="radio" name="check_${key}" value="${value}" ${old.status===value?'checked':''} required><span>${label}</span></label>`).join('')}</div>
+        <label class="check-justification" ${old.status==='nao_conforme'?'':'hidden'}>Descreva a não conformidade e a ação necessária<textarea rows="2" data-justification="${key}" placeholder="Descreva a pendência encontrada...">${escapeHtml(old.justificativa||'')}</textarea></label>
+      </article>`;
+    }).join('');
+    updateChecklistSummary();
+  }
+  function collectChecklist(validate=true) {
+    return $('#safetyChecklist [data-check-item]').map(card=>{
+      const key=card.dataset.checkItem;
+      const selected=$('input[type="radio"]:checked',card);
+      const question=$('.check-question strong',card)?.textContent||'';
+      const justification=$('[data-justification]',card)?.value.trim()||'';
+      return {key,pergunta:question,status:selected?.value||'',justificativa};
+    });
+  }
+  function updateChecklistSummary() {
+    const items=collectChecklist(false),answered=items.filter(x=>x.status).length;
+    const pending=items.length-answered,issues=items.filter(x=>x.status==='nao_conforme').length;
+    const summary=$('#checklistSummary');
+    if(summary)summary.textContent=`${answered} de ${items.length} itens respondidos · ${issues} não conformidade(s) · ${pending} pendente(s)`;
+  }
+  $('#safetyChecklist').addEventListener('change',event=>{
+    const card=event.target.closest('[data-check-item]');
+    if(card && event.target.matches('input[type="radio"]')){
+      const justification=$('[data-justification]',card);
+      if(justification){justification.closest('.check-justification').hidden=event.target.value!=='nao_conforme';if(event.target.value!=='nao_conforme')justification.value='';}
+      updateChecklistSummary();
+    }
+  });
+  $('#safetyChecklist').addEventListener('input',event=>{if(event.target.matches('[data-justification]'))updateChecklistSummary();});
+  $('input[name="equipamentos"],select[name="tipoTrabalho"]').forEach(el=>el.addEventListener('change',renderChecklist));
+  renderChecklist();
+
   $('#addWorker').addEventListener('click',addWorker);
   addWorker();
 
@@ -62,6 +142,11 @@
     if(!form.reportValidity())return;
     const workerCards=$$('.worker-card');
     if(!workerCards.length){toast('Adicione pelo menos um trabalhador.');return;}
+    const checklist=collectChecklist();
+    const unanswered=checklist.filter(item=>!item.status);
+    const unjustified=checklist.filter(item=>item.status==='nao_conforme'&&!item.justificativa);
+    if(unanswered.length){toast(`Responda todos os itens do checklist (${unanswered.length} pendente(s)).`);$('#safetyChecklist [data-check-item] input:not(:checked)')?.focus();return;}
+    if(unjustified.length){toast('Descreva todas as não conformidades antes de salvar.');$('[data-justification]',$('#safetyChecklist [data-check-item="'+unjustified[0].key+'"]'))?.focus();return;}
     const people=workerCards.map(card=>({
       nome:$('.worker-name',card).value.trim(),
       pressaoSistolica:$('.worker-sys',card).value,
@@ -69,7 +154,7 @@
       assinatura:$('.signature-pad',card).hasSignature?$('.signature-pad',card).toDataURL('image/png'):null
     }));
     const data=Object.fromEntries(new FormData(form).entries());
-    const record={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),criadoEm:new Date().toISOString(),status:'Em andamento',...data,equipamentos:$$('input[name="equipamentos"]:checked',form).map(el=>el.value),trabalhadores:people};
+    const record={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),criadoEm:new Date().toISOString(),status:'Em andamento',...data,equipamentos:$('input[name="equipamentos"]:checked',form).map(el=>el.value),checklist,trabalhadores:people};
     const records=readRecords();records.unshift(record);saveRecords(records);
     form.reset();$('#workersList').innerHTML='';workers=0;addWorker();
     toast('Permissão salva neste dispositivo.');navigate('historico');
