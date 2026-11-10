@@ -228,9 +228,14 @@
     requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
     try {
       if(modal.requestFullscreen) await modal.requestFullscreen();
-      if(screen.orientation?.lock) await screen.orientation.lock('landscape');
+      if(screen.orientation?.lock) {
+        await screen.orientation.lock('landscape');
+      } else if(window.matchMedia('(orientation: portrait)').matches) {
+        modal.classList.add('force-landscape');
+      }
     } catch (_) {
-      // Alguns navegadores não permitem travar a orientação; a tela continua ampla.
+      // Em navegadores sem bloqueio de orientação, gira visualmente a área de assinatura.
+      if(window.matchMedia('(orientation: portrait)').matches) modal.classList.add('force-landscape');
     }
   }
   async function closeSignature(confirm) {
@@ -239,7 +244,7 @@
     if(!confirm) canvas.loadSignature(signatureBackup);
     const preview=canvas.closest('.signature-wrap')?.querySelector('.signature-preview');
     if(preview) preview.appendChild(canvas);
-    signatureModal.classList.remove('is-open');
+    signatureModal.classList.remove('is-open','force-landscape');
     document.body.classList.remove('signature-lock-scroll');
     activeSignatureCanvas=null;
     signatureBackup=null;
