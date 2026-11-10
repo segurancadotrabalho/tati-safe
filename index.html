@@ -8,7 +8,7 @@
   <title>TATI SAFE | Gestão de PT</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=tati-safe-v35">
+  <link rel="stylesheet" href="styles.css?v=tati-safe-v36">
 </head>
 <body>
   <div class="app-shell">
@@ -116,8 +116,14 @@
       </section>
 
       <section class="page" id="page-historico">
-
-        <div class="history-toolbar"><input id="historySearch" type="search" placeholder="Buscar por local, serviço ou responsável..."><span id="historyCount">0 registros</span></div>
+        <div class="section-heading history-heading"><div><span class="eyebrow">CONSULTA E RASTREABILIDADE</span><h2>Histórico de Permissões de Trabalho</h2><p>Consulte, filtre e acompanhe todas as permissões registradas no sistema.</p></div><button class="btn btn-secondary" type="button" id="historyPrint">⎙ Imprimir histórico</button></div>
+        <div class="stats-grid history-stats">
+          <button type="button" class="stat-card stat-card-button" data-history-filter="todos" aria-pressed="true"><span class="stat-icon blue">▤</span><span class="stat-label">Total de PTs</span><strong id="historyTotal">0</strong><small>Todos os registros <span class="stat-card-arrow">→</span></small></button>
+          <button type="button" class="stat-card stat-card-button" data-history-filter="aguardando" aria-pressed="false"><span class="stat-icon amber">◇</span><span class="stat-label">Aguardando liberação</span><strong id="historyPending">0</strong><small>Aguardando análise <span class="stat-card-arrow">→</span></small></button>
+          <button type="button" class="stat-card stat-card-button" data-history-filter="andamento" aria-pressed="false"><span class="stat-icon green">◷</span><span class="stat-label">Em execução</span><strong id="historyRunning">0</strong><small>Atividades em andamento <span class="stat-card-arrow">→</span></small></button>
+          <button type="button" class="stat-card stat-card-button" data-history-filter="encerradas" aria-pressed="false"><span class="stat-icon blue">✓</span><span class="stat-label">Encerradas</span><strong id="historyClosed">0</strong><small>Permissões finalizadas <span class="stat-card-arrow">→</span></small></button>
+        </div>
+        <div class="history-toolbar"><input id="historySearch" type="search" placeholder="Buscar por local, serviço, responsável ou trabalhador..." aria-label="Buscar no histórico de PTs"><span id="historyCount">0 registros</span></div>
         <div id="historyList" class="record-list"><div class="empty-state">Nenhuma PT cadastrada.</div></div>
       </section>
 
