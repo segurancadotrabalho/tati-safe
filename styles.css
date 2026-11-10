@@ -164,3 +164,12 @@ body,.main-content{background:var(--canvas);color:var(--ink)}
 .check-justification textarea{display:block;width:100%;margin-top:6px;padding:10px;border:1px solid #efb5ba;border-radius:8px;font:inherit;color:var(--ink);resize:vertical}
 .checklist-summary{margin-top:14px;padding:12px 14px;border-radius:9px;background:#f4f0ff;color:#6041c7;font-size:11px;font-weight:700}
 @media(max-width:700px){.check-options{margin-left:0;gap:6px}.check-option span{padding:9px 10px}.check-justification{margin-left:0}.check-question{font-size:12px}}
+
+
+/* Cards de indicadores com navegação */
+.stat-card-button{font:inherit;text-align:left;color:inherit;cursor:pointer;width:100%;appearance:none;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.stat-card-button:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(48,35,82,.12);border-color:rgba(112,71,235,.35)}
+.stat-card-button:focus-visible{outline:3px solid rgba(112,71,235,.45);outline-offset:3px}
+.stat-card-button small{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.stat-card-arrow{font-size:16px;color:#7047eb;transition:transform .18s ease}
+.stat-card-button:hover .stat-card-arrow{transform:translateX(4px)}
