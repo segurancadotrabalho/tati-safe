@@ -41,6 +41,7 @@
       <div class="signature-wrap"><label>Assinatura do trabalhador</label><canvas class="signature-pad" aria-label="Campo para assinatura digital"></canvas><div class="signature-tools"><button type="button" class="clear-signature">Limpar assinatura</button></div></div>`;
     $('#workersList').appendChild(wrapper);
     setupSignature($('.signature-pad',wrapper));
+    const epiHost=document.createElement('div');epiHost.className='worker-epi-section';epiHost.innerHTML='<h3>Conferência individual dos EPIs</h3><p>Confirme a condição de cada EPI para este trabalhador.</p><div class="worker-epi-list"></div>';wrapper.insertBefore(epiHost,$('.signature-wrap',wrapper));renderWorkersEpis();
     $('.remove-worker',wrapper).addEventListener('click',()=>wrapper.remove());
     $('.clear-signature',wrapper).addEventListener('click',()=>{const c=$('.signature-pad',wrapper),ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);});
   }
@@ -65,6 +66,29 @@
     ['emergencia','A equipe conhece os meios de comunicação e o procedimento de emergência aplicável?'],
     ['condicoes','As condições do ambiente (iluminação, organização, clima e acesso) permitem executar o serviço com segurança?']
   ];
+  const checklistByWork = {
+    'Trabalho em altura': [['altura_analise','A atividade em altura foi planejada e a análise de risco específica foi realizada?'],['altura_sistema','O sistema de proteção contra quedas foi definido e inspecionado?'],['altura_resgate','Existe plano e recursos para resgate em caso de emergência?'],['altura_clima','As condições climáticas permitem a execução segura?']],
+    'Trabalho a quente': [['quente_area','A área foi verificada quanto a materiais combustíveis e fontes de ignição?'],['quente_extintor','Há extintor adequado e acessível?'],['quente_faiscas','Áreas próximas e níveis inferiores estão protegidos contra fagulhas?'],['quente_pos','Foi definido monitoramento após o término do serviço?']],
+    'Espaço confinado': [['espaco_pet','A PET aplicável foi emitida e está válida?'],['espaco_atmosfera','A atmosfera foi avaliada e será monitorada conforme procedimento?'],['espaco_vigia','Há vigia dedicado e comunicação permanente?'],['espaco_resgate','Equipe e plano de resgate estão disponíveis?']],
+    'Elétrica': [['eletrica_bloqueio','Foi priorizada a desenergização e aplicado bloqueio quando aplicável?'],['eletrica_teste','A ausência de tensão foi verificada com instrumento adequado?'],['eletrica_zonas','As zonas de risco e distâncias de segurança foram respeitadas?'],['eletrica_autorizacao','Os trabalhadores estão qualificados e autorizados?']],
+    'Manutenção industrial': [['manut_bloqueio','Máquinas e fontes de energia foram isoladas, bloqueadas e testadas?'],['manut_guardas','Proteções serão reinstaladas antes da liberação?'],['manut_ferramentas','Ferramentas e peças estão adequadas e em condições seguras?']],
+    'Telhados': [['telhado_cobertura','A resistência e as condições da cobertura foram avaliadas?'],['telhado_aberturas','Aberturas, bordas frágeis e claraboias estão protegidas?'],['telhado_acesso','O acesso e a circulação foram planejados e controlados?'],['telhado_resgate','Há proteção contra quedas e plano de resgate adequado?']],
+    'Movimentação de cargas': [['carga_plano','A movimentação foi planejada considerando peso e centro de gravidade?'],['carga_acessorios','Acessórios de içamento foram inspecionados e são compatíveis?'],['carga_isolamento','A área está isolada e sem pessoas sob cargas suspensas?'],['carga_sinaleiro','Há comunicação definida e sinaleiro quando necessário?']],
+    'Trabalho com empilhadeiras': [['empilhadeira_check','A empilhadeira foi inspecionada antes do uso?'],['empilhadeira_operador','O operador está habilitado e autorizado?'],['empilhadeira_rota','A rota está livre e segregada de pedestres?'],['empilhadeira_carga','A carga está estável e dentro da capacidade?']],
+    'Escavação': [['escavacao_interferencias','As interferências subterrâneas foram identificadas?'],['escavacao_solo','A estabilidade do solo e necessidade de escoramento foram avaliadas?'],['escavacao_borda','Há proteção e distância segura de materiais nas bordas?'],['escavacao_acesso','Há acesso seguro e inspeção das condições da escavação?']]
+  };
+  const epiByWork = {
+    'Trabalho em altura':['Capacete com jugular','Cinturão tipo paraquedista','Talabarte ou trava-quedas compatível','Calçado de segurança','Luvas adequadas à tarefa','Óculos de segurança'],
+    'Trabalho a quente':['Máscara de solda com filtro adequado','Óculos de segurança','Luvas de raspa ou proteção térmica','Avental e mangotes de raspa','Perneiras de proteção','Calçado de segurança','Proteção respiratória conforme avaliação'],
+    'Espaço confinado':['Capacete com jugular','Óculos de segurança','Luvas adequadas ao risco','Calçado de segurança','Proteção respiratória conforme avaliação atmosférica','Cinturão e sistema de resgate quando previsto'],
+    'Elétrica':['Capacete adequado ao risco elétrico','Óculos ou protetor facial','Luvas isolantes da classe adequada e cobertura','Vestimenta contra arco elétrico conforme estudo','Calçado adequado ao risco elétrico'],
+    'Manutenção industrial':['Capacete de segurança','Óculos de segurança','Luvas adequadas à tarefa','Calçado de segurança','Protetor auditivo conforme avaliação','Proteção respiratória conforme avaliação'],
+    'Telhados':['Capacete com jugular','Cinturão tipo paraquedista','Talabarte ou trava-quedas compatível','Calçado com solado aderente','Luvas adequadas','Óculos de segurança'],
+    'Movimentação de cargas':['Capacete de segurança','Óculos de segurança','Luvas adequadas ao manuseio','Calçado com biqueira','Colete de alta visibilidade quando aplicável'],
+    'Trabalho com empilhadeiras':['Calçado de segurança','Colete de alta visibilidade','Capacete conforme avaliação do local','Óculos conforme risco'],
+    'Escavação':['Capacete de segurança','Óculos de segurança','Luvas adequadas','Calçado de segurança','Colete de alta visibilidade','Proteção respiratória conforme avaliação'],
+    'Outros':['Capacete conforme avaliação','Óculos conforme avaliação','Luvas adequadas ao risco','Calçado de segurança','Proteção auditiva/respiratória conforme avaliação']
+  };
   const checklistByEquipment = {
     'PTA': [
       ['pta_inspecao','A PTA passou por inspeção antes do uso e não apresenta danos ou falhas aparentes?'],
@@ -91,7 +115,7 @@
   };
   function checklistItems() {
     const selected=$$('input[name="equipamentos"]:checked').map(el=>el.value);
-    return [...checklistBase,...selected.flatMap(name=>checklistByEquipment[name]||[])];
+    const work=$('select[name="tipoTrabalho"]')?.value||'';\n    return [...checklistBase,...(checklistByWork[work]||[]),...selected.flatMap(name=>checklistByEquipment[name]||[])];
   }
   function renderChecklist() {
     const host=$('#safetyChecklist'); if(!host)return;
@@ -132,8 +156,38 @@
     }
   });
   $('#safetyChecklist').addEventListener('input',event=>{if(event.target.matches('[data-justification]'))updateChecklistSummary();});
-  $$('input[name="equipamentos"],select[name="tipoTrabalho"]').forEach(el=>el.addEventListener('change',renderChecklist));
-  renderChecklist();
+  function selectedActivityEpis(){
+    const work=$('select[name="tipoTrabalho"]')?.value||'Outros';
+    const equipment=$('input[name="equipamentos"]:checked').map(el=>el.value);
+    const items=[...(epiByWork[work]||epiByWork['Outros'])];
+    if(work==='Trabalho em altura'||work==='Telhados'||equipment.includes('PTA')||equipment.includes('Andaimes')){
+      if(!items.includes('Capacete com jugular'))items.push('Capacete com jugular');
+      if(!items.includes('Sistema individual de proteção contra quedas compatível'))items.push('Sistema individual de proteção contra quedas compatível');
+    }
+    if(equipment.includes('Escadas')&&!items.includes('Calçado com solado aderente'))items.push('Calçado com solado aderente');
+    const extra=($('#epiExtra')?.value||'').split(',').map(x=>x.trim()).filter(Boolean);
+    return [...new Set([...items,...extra])];
+  }
+  function renderActivityEpis(){
+    const host=$('#activityEpiList');if(!host)return;
+    const previous=new Set($('#activityEpiList input:checked').map(el=>el.value));
+    const items=selectedActivityEpis();
+    host.innerHTML=items.map(item=>'<label class="activity-epi-option"><input type="checkbox" name="episAtividade" value="'+escapeHtml(item)+'" '+(previous.has(item)||!previous.size?'checked':'')+'><span>'+escapeHtml(item)+'</span></label>').join('');
+    renderWorkersEpis();
+  }
+  function renderWorkersEpis(){
+    const items=$('input[name="episAtividade"]:checked').map(el=>el.value);
+    $('.worker-card').forEach(card=>{
+      const host=$('.worker-epi-list',card);if(!host)return;
+      const previous={};$('input[type="radio"]',host).forEach(el=>{if(el.checked)previous[el.name]=el.value;});
+      host.innerHTML=items.map((item,i)=>{const key='worker_epi_'+i;const value=previous[key]||'';return '<div class="worker-epi-row"><strong>'+escapeHtml(item)+'</strong><div class="worker-epi-status"><label><input type="radio" name="'+key+'" value="adequado" '+(value==='adequado'?'checked':'')+' required> Conferido / adequado</label><label><input type="radio" name="'+key+'" value="pendente" '+(value==='pendente'?'checked':'')+' required> Ausente / inadequado</label></div></div>';}).join('');
+    });
+  }
+  $('input[name="equipamentos"]').forEach(el=>el.addEventListener('change',()=>{renderChecklist();renderActivityEpis();}));
+  $('select[name="tipoTrabalho"]').addEventListener('change',()=>{renderChecklist();renderActivityEpis();});
+  $('#epiExtra').addEventListener('input',renderActivityEpis);
+  $('#activityEpiList').addEventListener('change',renderWorkersEpis);
+  renderChecklist();renderActivityEpis();
 
   $('#addWorker').addEventListener('click',addWorker);
   addWorker();
@@ -145,6 +199,10 @@
     const workerCards=$$('.worker-card');
     if(!workerCards.length){toast('Adicione pelo menos um trabalhador.');return;}
     const checklist=collectChecklist();
+    const activityEpis=$('input[name="episAtividade"]:checked').map(el=>el.value);
+    if(!activityEpis.length){toast('Defina os EPIs necessários para a atividade.');$('#activityEpiList')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
+    const epiPending=workerCards.some(card=>activityEpis.some((epi,i)=>{const selected=$('input[name="worker_epi_'+i+'"]:checked',card);return !selected||selected.value!=='adequado';}));
+    if(epiPending){toast('Todos os EPIs devem estar conferidos e adequados para cada trabalhador.');$('.worker-epi-section')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
     const unanswered=checklist.filter(item=>!item.status);
     const unjustified=checklist.filter(item=>item.status==='nao_conforme'&&!item.justificativa);
     if(unanswered.length){toast(`Responda todos os itens do checklist (${unanswered.length} pendente(s)).`);$('#safetyChecklist [data-check-item] input:not(:checked)')?.focus();return;}
@@ -156,7 +214,7 @@
       assinatura:$('.signature-pad',card).hasSignature?$('.signature-pad',card).toDataURL('image/png'):null
     }));
     const data=Object.fromEntries(new FormData(form).entries());
-    const record={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),criadoEm:new Date().toISOString(),status:'Em andamento',...data,equipamentos:$$('input[name="equipamentos"]:checked',form).map(el=>el.value),checklist,trabalhadores:people};
+    const record={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),criadoEm:new Date().toISOString(),status:'Em andamento',...data,equipamentos:$('input[name="equipamentos"]:checked',form).map(el=>el.value),episAtividade:activityEpis,checklist,trabalhadores:people.map((person,index)=>({...person,episConferidos:activityEpis.map((epi,i)=>({epi,status:$('input[name="worker_epi_'+i+'"]:checked',workerCards[index])?.value||'pendente'}))}))};
     const records=readRecords();records.unshift(record);saveRecords(records);
     form.reset();$('#workersList').innerHTML='';workers=0;addWorker();
     toast('Permissão salva neste dispositivo.');navigate('historico');
@@ -191,7 +249,7 @@
   });
   function showDetails(r) {
     const people=(r.trabalhadores||[]).map(p=>`• ${escapeHtml(p.nome)} — PA: ${escapeHtml(p.pressaoSistolica||'—')}/${escapeHtml(p.pressaoDiastolica||'—')} mmHg`).join('\n');
-    const details=[`PT — ${r.local}`,`Tipo: ${r.tipoTrabalho}`,`Serviço: ${r.servico}`,`Início: ${formatDate(r.dataInicio)}`,`Término: ${formatDate(r.dataFim)}`,`Equipamentos: ${(r.equipamentos||[]).join(', ')||'Não informado'}`,`Responsável execução: ${r.responsavelExecucao}`,`Responsável área: ${r.responsavelArea}`,`Segurança do Trabalho: ${r.seguranca}`,`Trabalhadores:\n${people||'Não informado'}`,`Checklist de segurança:\n${(r.checklist||[]).map((item,i)=>`${i+1}. ${item.pergunta} — ${item.status==='conforme'?'Conforme':item.status==='nao_conforme'?'Não conforme':'Não se aplica'}${item.justificativa?' | Pendência: '+item.justificativa:''}`).join('\n')||'Não registrado'}`,`Observações: ${r.observacoes||'—'}`].join('\n\n');
+    const details=[`PT — ${r.local}`,`Tipo: ${r.tipoTrabalho}`,`Serviço: ${r.servico}`,`Início: ${formatDate(r.dataInicio)}`,`Término: ${formatDate(r.dataFim)}`,`Equipamentos: ${(r.equipamentos||[]).join(', ')||'Não informado'}`,`Responsável execução: ${r.responsavelExecucao}`,`Responsável área: ${r.responsavelArea}`,`Segurança do Trabalho: ${r.seguranca}`,`Trabalhadores:\n${people||'Não informado'}`,`EPIs necessários:\n${(r.episAtividade||[]).join(', ')||'Não registrado'}`,`EPIs por trabalhador:\n${(r.trabalhadores||[]).map(p=>p.nome+': '+(p.episConferidos||[]).map(e=>e.epi+' — '+(e.status==='adequado'?'Conferido':'Pendente')).join('; ')).join('\n')}`,`Checklist de segurança:\n${(r.checklist||[]).map((item,i)=>`${i+1}. ${item.pergunta} — ${item.status==='conforme'?'Conforme':item.status==='nao_conforme'?'Não conforme':'Não se aplica'}${item.justificativa?' | Pendência: '+item.justificativa:''}`).join('\n')||'Não registrado'}`,`Observações: ${r.observacoes||'—'}`].join('\n\n');
     alert(details);
   }
   renderDashboard();
