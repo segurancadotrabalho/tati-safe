@@ -538,6 +538,23 @@
     $('#totalPts').textContent=records.length;$('#activePts').textContent=active.length;$('#closedPts').textContent=records.filter(r=>r.status==='Encerrada').length;
     $('#recentList').innerHTML=records.length?records.slice(0,4).map(recordCard).join(''):'<div class="empty-state">Nenhuma PT cadastrada. Comece criando uma nova permissão.</div>';
   }
+  function bindRecordCards(containerSelector) {
+    $$(containerSelector+' [data-open-record]').forEach(card=>{
+      if(card.dataset.clickBound==='true')return;
+      card.dataset.clickBound='true';
+      const open=()=>{
+        const record=readRecords().find(item=>item.id===card.dataset.openRecord);
+        if(record)showDetails(record);
+      };
+      card.addEventListener('click',event=>{
+        if(event.target.closest('button,a,input,select,textarea,label'))return;
+        open();
+      });
+      card.addEventListener('keydown',event=>{
+        if(event.key==='Enter'||event.key===' '){event.preventDefault();open();}
+      });
+    });
+  }
   function renderPending() {
     const pending=readRecords().filter(r=>r.status==='Aguardando liberação');
     const term=($('#pendingSearch')?.value||'').trim().toLocaleLowerCase('pt-BR');
@@ -564,6 +581,7 @@
         <div class="pending-actions"><button class="pending-view" type="button" data-view="${escapeHtml(r.id)}">Analisar PT</button><button class="pending-release" type="button" data-release="${escapeHtml(r.id)}">Liberar PT <span>→</span></button></div>
       </article>`;
     }).join(''):'<div class="empty-state">'+(pending.length?'Nenhuma PT corresponde à sua busca.':'Nenhuma PT aguardando liberação. As novas permissões cadastradas aparecerão aqui para análise.')+'</div>';
+    bindRecordCards('#pendingList');
   }
   function renderRunning() {
     const active=readRecords().filter(r=>r.status==='Em andamento');
@@ -589,6 +607,7 @@
         </div><div class="record-meta"><button class="running-view" type="button" data-view="${escapeHtml(r.id)}">Ver detalhes <span>→</span></button></div>
       </article>`;
     }).join(''):'<div class="empty-state">'+(active.length?'Nenhuma PT corresponde à sua busca.':'Nenhuma PT em andamento no momento. As permissões salvas como em andamento aparecerão aqui.')+'</div>';
+    bindRecordCards('#runningList');
   }
   $('#historySearch').addEventListener('input',renderHistory);
   $('#runningSearch').addEventListener('input',renderRunning);
@@ -612,11 +631,6 @@
     }
     const del=event.target.closest('[data-delete]');
     if(del){if(!confirm('Deseja realmente excluir esta Permissão de Trabalho?'))return;saveRecords(readRecords().filter(r=>r.id!==del.dataset.delete));renderHistory();renderDashboard();toast('Registro excluído.');return;}
-    const card=event.target.closest('[data-open-record]');
-    if(card && !event.target.closest('button,a,input,select,textarea,label')){const record=readRecords().find(r=>r.id===card.dataset.openRecord);if(record)showDetails(record);}
-  });
-  document.addEventListener('keydown',event=>{
-    if((event.key==='Enter'||event.key===' ') && event.target.matches('[data-open-record]')){event.preventDefault();const record=readRecords().find(r=>r.id===event.target.dataset.openRecord);if(record)showDetails(record);}
   });
   function showDetails(r) {
     const people=(r.trabalhadores||[]).map(p=>`• ${escapeHtml(p.nome)} — PA: ${escapeHtml(p.pressaoSistolica||'—')}/${escapeHtml(p.pressaoDiastolica||'—')} mmHg`).join('\n');
