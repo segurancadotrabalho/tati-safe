@@ -456,8 +456,7 @@
       if(!items.includes('Sistema individual de proteção contra quedas compatível'))items.push('Sistema individual de proteção contra quedas compatível');
     }
     if(equipment.includes('Escadas')&&!items.includes('Calçado com solado aderente'))items.push('Calçado com solado aderente');
-    const extra=($('#epiExtra')?.value||'').split(',').map(x=>x.trim()).filter(Boolean);
-    return [...new Set([...items,...extra])];
+    return [...new Set(items)];
   }
   function renderActivityEpis(){
     const host=$('#activityEpiList');if(!host)return;
@@ -481,7 +480,6 @@
   }
   $$('input[name="equipamentos"]').forEach(el=>el.addEventListener('change',()=>{renderChecklist();renderActivityEpis();}));
   $('select[name="tipoTrabalho"]').addEventListener('change',()=>{renderChecklist();renderActivityEpis();});
-  $('#epiExtra').addEventListener('input',renderActivityEpis);
   $('#activityEpiList').addEventListener('change',renderWorkersEpis);
   renderChecklist();renderActivityEpis();
 
