@@ -104,4 +104,13 @@
     alert(details);
   }
   renderDashboard();
+
+  function updateClock(){
+    const now=new Date();
+    const date=$('#clockDate'),time=$('#clockTime');
+    if(date)date.textContent=new Intl.DateTimeFormat('pt-BR',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).format(now);
+    if(time)time.textContent=new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(now);
+  }
+  updateClock();
+  setInterval(updateClock,1000);
 })();
