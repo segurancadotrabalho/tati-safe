@@ -573,7 +573,7 @@
     });
   }
   function renderPending() {
-    $('[data-metric-filter^="pending:"]').forEach(card=>{const active=card.dataset.metricFilter==='pending:'+pendingMetricFilter;card.classList.toggle('metric-selected',active);card.setAttribute('aria-pressed',String(active));});
+    $$('[data-metric-filter^="pending:"]').forEach(card=>{const active=card.dataset.metricFilter==='pending:'+pendingMetricFilter;card.classList.toggle('metric-selected',active);card.setAttribute('aria-pressed',String(active));});
     const pending=readRecords().filter(r=>r.status==='Aguardando liberação');
     const term=($('#pendingSearch')?.value||'').trim().toLocaleLowerCase('pt-BR');
     const workers=pending.reduce((total,r)=>total+(r.trabalhadores||[]).length,0);
@@ -604,7 +604,7 @@
     bindRecordCards('#pendingList');
   }
   function renderRunning() {
-    $('[data-metric-filter^="running:"]').forEach(card=>{const selected=card.dataset.metricFilter==='running:'+runningMetricFilter;card.classList.toggle('metric-selected',selected);card.setAttribute('aria-pressed',String(selected));});
+    $$('[data-metric-filter^="running:"]').forEach(card=>{const selected=card.dataset.metricFilter==='running:'+runningMetricFilter;card.classList.toggle('metric-selected',selected);card.setAttribute('aria-pressed',String(selected));});
     const active=readRecords().filter(r=>r.status==='Em andamento');
     const term=($('#runningSearch')?.value||'').trim().toLocaleLowerCase('pt-BR');
     const now=new Date();
