@@ -410,7 +410,7 @@
     ]
   };
   function checklistItems() {
-    const selected=$$('input[name="equipamentos"]:checked').map(el=>el.value);
+    const selected=$$$('input[name="equipamentos"]:checked').map(el=>el.value);
     const work=$('select[name="tipoTrabalho"]')?.value||'';
     return [...checklistBase,...(checklistByWork[work]||[]),...selected.flatMap(name=>checklistByEquipment[name]||[])];
   }
@@ -455,7 +455,7 @@
   $('#safetyChecklist').addEventListener('input',event=>{if(event.target.matches('[data-justification]'))updateChecklistSummary();});
   function selectedActivityEpis(){
     const work=$('select[name="tipoTrabalho"]')?.value||'Outros';
-    const equipment=$$('input[name="equipamentos"]:checked').map(el=>el.value);
+    const equipment=$$$('input[name="equipamentos"]:checked').map(el=>el.value);
     const items=[...(epiByWork[work]||epiByWork['Outros'])];
     if(work==='Trabalho em altura'||work==='Telhados'||equipment.includes('PTA')||equipment.includes('Andaimes')){
       if(!items.includes('Capacete com jugular'))items.push('Capacete com jugular');
@@ -466,7 +466,7 @@
   }
   function renderActivityEpis(){
     const host=$('#activityEpiList');if(!host)return;
-    const previous=new Set($$('input[name="episAtividade"]:checked',host).map(el=>el.value));
+    const previous=new Set($$$('input[name="episAtividade"]:checked',host).map(el=>el.value));
     const seen=new Set(JSON.parse(host.dataset.seen||'[]'));
     const items=selectedActivityEpis();
     host.innerHTML=items.map(item=>{
@@ -477,14 +477,14 @@
     renderWorkersEpis();
   }
   function renderWorkersEpis(){
-    const items=$$('input[name="episAtividade"]:checked').map(el=>el.value);
+    const items=$$$('input[name="episAtividade"]:checked').map(el=>el.value);
     $$('.worker-card').forEach(card=>{
       const host=$('.worker-epi-list',card);if(!host)return;
       const previous={};$$('input[type="radio"]',host).forEach(el=>{if(el.checked)previous[el.name]=el.value;});
       host.innerHTML=items.map((item,i)=>{const key='worker_epi_'+item.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_');const value=previous[key]||'';return '<div class="worker-epi-row"><strong>'+escapeHtml(item)+'</strong><div class="worker-epi-status"><label><input type="radio" name="'+key+'" value="adequado" '+(value==='adequado'?'checked':'')+' required> Conferido / adequado</label><label><input type="radio" name="'+key+'" value="pendente" '+(value==='pendente'?'checked':'')+' required> Ausente / inadequado</label></div></div>';}).join('');
     });
   }
-  $$('input[name="equipamentos"]').forEach(el=>el.addEventListener('change',()=>{renderChecklist();renderActivityEpis();}));
+  $$$('input[name="equipamentos"]').forEach(el=>el.addEventListener('change',()=>{renderChecklist();renderActivityEpis();}));
   $('select[name="tipoTrabalho"]').addEventListener('change',()=>{renderChecklist();renderActivityEpis();});
   $('#activityEpiList').addEventListener('change',renderWorkersEpis);
   renderChecklist();renderActivityEpis();
@@ -499,9 +499,9 @@
     const workerCards=$$('.worker-card');
     if(!workerCards.length){toast('Adicione pelo menos um trabalhador.');return;}
     const checklist=collectChecklist();
-    const activityEpis=$$('input[name="episAtividade"]:checked').map(el=>el.value);
+    const activityEpis=$$$('input[name="episAtividade"]:checked').map(el=>el.value);
     if(!activityEpis.length){toast('Defina os EPIs necessários para a atividade.');$('#activityEpiList')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
-    const epiPending=workerCards.some(card=>activityEpis.some((epi,i)=>{const key='worker_epi_'+epi.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_');const selected=$('input[name="'+key+'"]:checked',card);return !selected||selected.value!=='adequado';}));
+    const epiPending=workerCards.some(card=>activityEpis.some((epi,i)=>{const key='worker_epi_'+epi.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_');const selected=$$('input[name="'+key+'"]:checked',card);return !selected||selected.value!=='adequado';}));
     if(epiPending){toast('Todos os EPIs devem estar conferidos e adequados para cada trabalhador.');$('.worker-epi-section')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
     const unanswered=checklist.filter(item=>!item.status);
     const unjustified=checklist.filter(item=>item.status==='nao_conforme'&&!item.justificativa);
@@ -516,7 +516,7 @@
       assinatura:$('.signature-pad',card).hasSignature?$('.signature-pad',card).toDataURL('image/png'):null
     }));
     const data=Object.fromEntries(new FormData(form).entries());
-    const record={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),criadoEm:new Date().toISOString(),status:'Aguardando liberação',...data,equipamentos:$$('input[name="equipamentos"]:checked',form).map(el=>el.value),episAtividade:activityEpis,checklist,trabalhadores:people.map((person,index)=>({...person,episConferidos:activityEpis.map((epi,i)=>({epi,status:$('input[name="worker_epi_'+epi.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_')+'"]:checked',workerCards[index])?.value||'pendente'}))}))};
+    const record={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),criadoEm:new Date().toISOString(),status:'Aguardando liberação',...data,equipamentos:$$$('input[name="equipamentos"]:checked',form).map(el=>el.value),episAtividade:activityEpis,checklist,trabalhadores:people.map((person,index)=>({...person,episConferidos:activityEpis.map((epi,i)=>({epi,status:$$('input[name="worker_epi_'+epi.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_')+'"]:checked',workerCards[index])?.value||'pendente'}))}))};
     const records=readRecords();records.unshift(record);saveRecords(records);
     form.reset();$('#workersList').innerHTML='';workers=0;addWorker();
     toast('PT cadastrada e enviada para aguardando liberação.');navigate('aguardando');
@@ -752,7 +752,7 @@
   const readSafetyChecks=()=>{try{return JSON.parse(localStorage.getItem(SAFETY_CHECK_KEY)||'[]');}catch{return [];}};
   const saveSafetyChecks=list=>localStorage.setItem(SAFETY_CHECK_KEY,JSON.stringify(list));
   function safetyCheckItems(){
-    const work=$('#safetyCheckWork').value, equipment=$('input[name="equipamentos"]:checked',$('#safetyCheckForm')).map(x=>x.value);
+    const work=$('#safetyCheckWork').value, equipment=$$('input[name="equipamentos"]:checked',$('#safetyCheckForm')).map(x=>x.value);
     const all=[...checklistBase,...(checklistByWork[work]||[]),...equipment.flatMap(x=>checklistByEquipment[x]||[])], seen=new Set();
     return all.filter(item=>{if(seen.has(item[0]))return false;seen.add(item[0]);return true;});
   }
@@ -767,9 +767,9 @@
   function updateSafetyCheckSummary(){const host=$('#safetyCheckSummary');if(!host)return;const items=collectSafetyCheckItems(),answered=items.filter(x=>x.status).length,issues=items.filter(x=>x.status==='nao_conforme').length;host.textContent=items.length?answered+' de '+items.length+' itens respondidos · '+issues+' não conformidade(s) · '+(items.length-answered)+' pendente(s)':'Selecione o tipo de trabalho para carregar os itens.';}
   function renderSafetyCheckPtOptions(selected=''){const el=$('#safetyCheckPt');el.innerHTML='<option value="">Sem vínculo com uma PT</option>'+readRecords().map(p=>'<option value="'+escapeHtml(p.id)+'">'+escapeHtml((p.local||'Local não informado')+' · '+(p.tipoTrabalho||'PT'))+'</option>').join('');el.value=selected;}
   function renderSafetyChecks(){const all=readSafetyChecks(),term=$('#safetyCheckSearch').value.trim().toLocaleLowerCase('pt-BR'),status=$('#safetyCheckStatus').value;$('#safetyCheckTotal').textContent=all.length;$('#safetyCheckDraft').textContent=all.filter(x=>x.status==='Em preenchimento').length;$('#safetyCheckDone').textContent=all.filter(x=>x.status==='Concluído').length;$('#safetyCheckIssues').textContent=all.filter(x=>(x.itens||[]).some(i=>i.status==='nao_conforme')).length;const list=all.filter(x=>(status==='todos'||x.status===status)&&[x.tipoTrabalho,x.local,x.responsavel].join(' ').toLocaleLowerCase('pt-BR').includes(term)).sort((a,b)=>(b.atualizadoEm||'').localeCompare(a.atualizadoEm||''));$('#safetyCheckCount').textContent=list.length+' de '+all.length+' checklist(s)';$('#safetyCheckList').innerHTML=list.length?list.map(x=>'<article class="record-item safety-check-record"><div class="safety-check-record-main"><strong>'+escapeHtml(x.tipoTrabalho)+'</strong><small>'+escapeHtml(x.local)+' · '+escapeHtml(x.responsavel)+'</small><div class="apr-record-meta"><span>Data: '+escapeHtml(x.data)+'</span><span>'+(x.itens||[]).filter(i=>i.status==='nao_conforme').length+' não conformidade(s)</span><span>'+(x.itens||[]).length+' itens</span></div></div><div class="record-meta"><span class="apr-status '+(x.status==='Concluído'?'done':'draft')+'">'+escapeHtml(x.status)+'</span><div class="record-actions"><button type="button" data-safety-view="'+escapeHtml(x.id)+'">Detalhes</button><button type="button" data-safety-edit="'+escapeHtml(x.id)+'">Editar</button><button type="button" class="delete" data-safety-delete="'+escapeHtml(x.id)+'">Excluir</button></div></div></article>').join(''):'<div class="empty-state">Nenhum checklist encontrado. Altere a busca ou cadastre uma nova inspeção.</div>';}
-  function openSafetyCheck(record=null){const form=$('#safetyCheckForm');form.reset();form.elements.id.value=record?.id||'';form.elements.tipoTrabalho.value=record?.tipoTrabalho||'';form.elements.data.value=record?.data||new Date().toISOString().slice(0,10);form.elements.local.value=record?.local||'';form.elements.responsavel.value=record?.responsavel||'';form.elements.observacoes.value=record?.observacoes||'';$('input[name="equipamentos"]',form).forEach(el=>el.checked=(record?.equipamentos||[]).includes(el.value));renderSafetyCheckPtOptions(record?.ptId||'');$('#safetyCheckEditorTitle').textContent=record?'Editar checklist de segurança':'Novo checklist de segurança';renderSafetyCheckItems(record?.itens||[]);$('#safetyCheckEditor').hidden=false;$('#safetyCheckEditor').scrollIntoView({behavior:'smooth',block:'start'});}
+  function openSafetyCheck(record=null){const form=$('#safetyCheckForm');form.reset();form.elements.id.value=record?.id||'';form.elements.tipoTrabalho.value=record?.tipoTrabalho||'';form.elements.data.value=record?.data||new Date().toISOString().slice(0,10);form.elements.local.value=record?.local||'';form.elements.responsavel.value=record?.responsavel||'';form.elements.observacoes.value=record?.observacoes||'';$$('input[name="equipamentos"]',form).forEach(el=>el.checked=(record?.equipamentos||[]).includes(el.value));renderSafetyCheckPtOptions(record?.ptId||'');$('#safetyCheckEditorTitle').textContent=record?'Editar checklist de segurança':'Novo checklist de segurança';renderSafetyCheckItems(record?.itens||[]);$('#safetyCheckEditor').hidden=false;$('#safetyCheckEditor').scrollIntoView({behavior:'smooth',block:'start'});}
   function closeSafetyCheck(){$('#safetyCheckEditor').hidden=true;$('#safetyCheckForm').reset();$('#safetyCheckItems').innerHTML='';}
-  function persistSafetyCheck(finalize){const form=$('#safetyCheckForm');if(!form.reportValidity())return;const items=collectSafetyCheckItems();if(!items.length){toast('Selecione o tipo de trabalho para carregar os itens.');return;}if(finalize&&items.some(x=>!x.status)){toast('Responda a todos os itens antes de concluir.');return;}if(items.some(x=>x.status==='nao_conforme'&&!x.justificativa)){toast('Descreva todas as não conformidades e as ações necessárias.');return;}const data=Object.fromEntries(new FormData(form).entries()),equipamentos=$('input[name="equipamentos"]:checked',form).map(x=>x.value),all=readSafetyChecks(),id=data.id||((crypto.randomUUID&&crypto.randomUUID())||String(Date.now())),old=all.find(x=>x.id===id),record={...data,id,equipamentos,itens,status:finalize?'Concluído':'Em preenchimento',criadoEm:old?.criadoEm||new Date().toISOString(),atualizadoEm:new Date().toISOString()};const index=all.findIndex(x=>x.id===id);if(index>=0)all[index]=record;else all.unshift(record);saveSafetyChecks(all);closeSafetyCheck();renderSafetyChecks();toast(finalize?'Checklist concluído e salvo.':'Preenchimento salvo.');}
+  function persistSafetyCheck(finalize){const form=$('#safetyCheckForm');if(!form.reportValidity())return;const items=collectSafetyCheckItems();if(!items.length){toast('Selecione o tipo de trabalho para carregar os itens.');return;}if(finalize&&items.some(x=>!x.status)){toast('Responda a todos os itens antes de concluir.');return;}if(items.some(x=>x.status==='nao_conforme'&&!x.justificativa)){toast('Descreva todas as não conformidades e as ações necessárias.');return;}const data=Object.fromEntries(new FormData(form).entries()),equipamentos=$$('input[name="equipamentos"]:checked',form).map(x=>x.value),all=readSafetyChecks(),id=data.id||((crypto.randomUUID&&crypto.randomUUID())||String(Date.now())),old=all.find(x=>x.id===id),record={...data,id,equipamentos,itens,status:finalize?'Concluído':'Em preenchimento',criadoEm:old?.criadoEm||new Date().toISOString(),atualizadoEm:new Date().toISOString()};const index=all.findIndex(x=>x.id===id);if(index>=0)all[index]=record;else all.unshift(record);saveSafetyChecks(all);closeSafetyCheck();renderSafetyChecks();toast(finalize?'Checklist concluído e salvo.':'Preenchimento salvo.');}
   $('#newSafetyChecklist').addEventListener('click',()=>openSafetyCheck());
   $('#cancelSafetyCheck').addEventListener('click',closeSafetyCheck);
   $('#saveSafetyCheckDraft').addEventListener('click',()=>persistSafetyCheck(false));
