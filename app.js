@@ -38,12 +38,13 @@
         <label>Pressão arterial — sistólica (mmHg)<input class="worker-sys" type="number" min="50" max="260" placeholder="Ex.: 120"></label>
         <label>Pressão arterial — diastólica (mmHg)<input class="worker-dia" type="number" min="30" max="160" placeholder="Ex.: 80"></label>
       </div>
-      <div class="signature-wrap"><label>Assinatura do trabalhador</label><canvas class="signature-pad" aria-label="Campo para assinatura digital"></canvas><div class="signature-tools"><button type="button" class="clear-signature">Limpar assinatura</button></div></div>`;
+      <div class="signature-wrap"><label>Assinatura do trabalhador</label><div class="signature-preview"><canvas class="signature-pad" aria-label="Prévia da assinatura digital"></canvas></div><div class="signature-tools"><button type="button" class="open-signature">✍ Assinar digitalmente</button><button type="button" class="clear-signature">Limpar</button></div></div>`;
     $('#workersList').appendChild(wrapper);
     setupSignature($('.signature-pad',wrapper));
     const epiHost=document.createElement('section');epiHost.className='worker-epi-section';epiHost.innerHTML='<button type="button" class="worker-epi-toggle" aria-expanded="false"><span><strong>Conferência individual dos EPIs</strong><small>Verificar os equipamentos deste trabalhador</small></span><span class="worker-epi-chevron" aria-hidden="true">⌄</span></button><div class="worker-epi-content" hidden><div class="worker-epi-list"></div></div>';wrapper.insertBefore(epiHost,$('.signature-wrap',wrapper));$('.worker-epi-toggle',epiHost).addEventListener('click',()=>{const toggle=$('.worker-epi-toggle',epiHost);const content=$('.worker-epi-content',epiHost);const expanded=toggle.getAttribute('aria-expanded')==='true';toggle.setAttribute('aria-expanded',String(!expanded));content.hidden=expanded;});renderWorkersEpis();
     $('.remove-worker',wrapper).addEventListener('click',()=>wrapper.remove());
     $('.clear-signature',wrapper).addEventListener('click',()=>$('.signature-pad',wrapper).clearSignature());
+    $('.open-signature',wrapper).addEventListener('click',()=>openSignature($('.signature-pad',wrapper)));
   }
   function setupSignature(canvas) {
     const ctx = canvas.getContext('2d');
@@ -180,6 +181,71 @@
       canvas.dataset.signed = 'false';
     };
     Object.defineProperty(canvas, 'hasSignature', { get: () => signed });
+    canvas.loadSignature = dataUrl => {
+      if (!dataUrl) { canvas.clearSignature(); return; }
+      const image = new Image();
+      image.onload = () => {
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        canvas.width = Math.round(rect.width * ratioNow());
+        canvas.height = Math.round(rect.height * ratioNow());
+        configureContext();
+        ctx.drawImage(image, 0, 0, rect.width, rect.height);
+        signed = true;
+        canvas.dataset.signed = 'true';
+      };
+      image.src = dataUrl;
+    };
+  }
+
+  let activeSignatureCanvas = null;
+  let signatureBackup = null;
+  let signatureModal = null;
+  function ensureSignatureModal() {
+    if (signatureModal) return signatureModal;
+    signatureModal = document.createElement('section');
+    signatureModal.className = 'signature-fullscreen';
+    signatureModal.setAttribute('role','dialog');
+    signatureModal.setAttribute('aria-modal','true');
+    signatureModal.setAttribute('aria-label','Assinatura digital do trabalhador');
+    signatureModal.innerHTML = '<header class="signature-fullscreen-head"><div><strong>Assinatura digital</strong><small>Assine dentro do espaço abaixo</small></div><button type="button" class="signature-close" aria-label="Fechar">×</button></header><div class="signature-fullscreen-canvas"></div><footer class="signature-fullscreen-actions"><button type="button" class="signature-cancel">Cancelar</button><button type="button" class="signature-reset">Limpar</button><button type="button" class="signature-confirm">Confirmar assinatura</button></footer>';
+    document.body.appendChild(signatureModal);
+    signatureModal.querySelector('.signature-close').addEventListener('click',()=>closeSignature(false));
+    signatureModal.querySelector('.signature-cancel').addEventListener('click',()=>closeSignature(false));
+    signatureModal.querySelector('.signature-reset').addEventListener('click',()=>activeSignatureCanvas?.clearSignature());
+    signatureModal.querySelector('.signature-confirm').addEventListener('click',()=>closeSignature(true));
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&activeSignatureCanvas)closeSignature(false);});
+    return signatureModal;
+  }
+  async function openSignature(canvas) {
+    const modal=ensureSignatureModal();
+    activeSignatureCanvas=canvas;
+    signatureBackup=canvas.hasSignature?canvas.toDataURL('image/png'):null;
+    const host=modal.querySelector('.signature-fullscreen-canvas');
+    host.appendChild(canvas);
+    modal.classList.add('is-open');
+    document.body.classList.add('signature-lock-scroll');
+    requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+    try {
+      if(modal.requestFullscreen) await modal.requestFullscreen();
+      if(screen.orientation?.lock) await screen.orientation.lock('landscape');
+    } catch (_) {
+      // Alguns navegadores não permitem travar a orientação; a tela continua ampla.
+    }
+  }
+  async function closeSignature(confirm) {
+    if(!activeSignatureCanvas) return;
+    const canvas=activeSignatureCanvas;
+    if(!confirm) canvas.loadSignature(signatureBackup);
+    const preview=canvas.closest('.signature-wrap')?.querySelector('.signature-preview');
+    if(preview) preview.appendChild(canvas);
+    signatureModal.classList.remove('is-open');
+    document.body.classList.remove('signature-lock-scroll');
+    activeSignatureCanvas=null;
+    signatureBackup=null;
+    try { if(screen.orientation?.unlock) screen.orientation.unlock(); } catch (_) {}
+    try { if(document.fullscreenElement) await document.exitFullscreen(); } catch (_) {}
+    requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
   }
   const checklistBase = [
     ['area','A área foi inspecionada e os riscos do entorno foram identificados e controlados?'],
