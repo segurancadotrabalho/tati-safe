@@ -7,6 +7,7 @@
   let historyStatusFilter = 'todos';
   let runningMetricFilter = 'all';
   let pendingMetricFilter = 'all';
+  let aprMetricFilter = 'all';
   const readRecords = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; } };
   const saveRecords = records => localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -708,10 +709,11 @@
   }
   function addRisk(r){$('#aprRiskList').insertAdjacentHTML('beforeend',riskRow(r||{}));updateRiskScores();}
   function renderAprs(){
-    const all=readAprs(),term=$('#aprSearch').value.trim().toLocaleLowerCase('pt-BR'),status=$('#aprStatusFilter').value;
+    const all=readAprs(),term=$('#aprSearch').value.trim().toLocaleLowerCase('pt-BR'),status=aprMetricFilter==='all'?$('#aprStatusFilter').value:aprMetricFilter;
     $('#aprTotal').textContent=all.length;$('#aprDraft').textContent=all.filter(a=>a.status==='Em elaboração').length;$('#aprDone').textContent=all.filter(a=>a.status==='Concluída').length;
     const list=all.filter(a=>(status==='todas'||a.status===status)&&[a.atividade,a.local,a.responsavel,a.descricao].join(' ').toLocaleLowerCase('pt-BR').includes(term)).sort((a,b)=>(b.atualizadoEm||'').localeCompare(a.atualizadoEm||''));
     $('#aprCount').textContent=list.length+' de '+all.length+' APR(s)';
+    $('[data-apr-filter]').forEach(card=>{const active=card.dataset.aprFilter===aprMetricFilter;card.classList.toggle('metric-selected',active);card.setAttribute('aria-pressed',String(active));});
     $('#aprList').innerHTML=list.length?list.map(a=>'<article class="record-item apr-record"><div class="apr-record-main"><strong>'+escapeHtml(a.atividade)+'</strong><small>'+escapeHtml(a.local)+' · '+escapeHtml(a.responsavel)+'</small><div class="apr-record-meta"><span>Data: '+escapeHtml(a.data)+'</span><span>'+(a.riscos||[]).length+' etapa(s) de risco</span></div></div><div class="record-meta"><span class="apr-status '+(a.status==='Concluída'?'done':'draft')+'">'+escapeHtml(a.status)+'</span><div class="record-actions"><button type="button" data-apr-view="'+escapeHtml(a.id)+'">Detalhes</button><button type="button" data-apr-edit="'+escapeHtml(a.id)+'">Editar</button><button type="button" class="delete" data-apr-delete="'+escapeHtml(a.id)+'">Excluir</button></div></div></article>').join(''):'<div class="empty-state">Nenhuma APR encontrada. Altere a busca ou cadastre uma nova análise.</div>';
   }
   function openApr(a=null){
@@ -741,6 +743,7 @@
     const old=all.find(a=>a.id===id),record={...data,id,riscos,criadoEm:old?.criadoEm||new Date().toISOString(),atualizadoEm:new Date().toISOString()};
     const i=all.findIndex(a=>a.id===id);if(i>=0)all[i]=record;else all.unshift(record);saveAprs(all);closeApr();renderAprs();toast(i>=0?'APR atualizada.':'APR cadastrada com sucesso.');
   });
+  $('[data-apr-filter]').forEach(card=>card.addEventListener('click',()=>{aprMetricFilter=card.dataset.aprFilter;$('#aprStatusFilter').value=aprMetricFilter==='all'?'todas':aprMetricFilter;renderAprs();}));
   $('#aprSearch').addEventListener('input',renderAprs);$('#aprStatusFilter').addEventListener('change',renderAprs);
   $('#aprList').addEventListener('click',e=>{
     const v=e.target.closest('[data-apr-view]');if(v){const a=readAprs().find(x=>x.id===v.dataset.aprView);if(a)showApr(a);return;}
