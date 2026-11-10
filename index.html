@@ -8,7 +8,7 @@
   <title>TATI SAFE | Gestão de PT</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=tati-safe-v36">
+  <link rel="stylesheet" href="styles.css?v=tati-safe-v37">
 </head>
 <body>
   <div class="app-shell">
@@ -165,9 +165,40 @@
 <div class="apr-list-toolbar"><input id="aprSearch" type="search" placeholder="Buscar por atividade, local ou responsável..." aria-label="Buscar APR"><select id="aprStatusFilter" aria-label="Filtrar situação"><option value="todas">Todas as situações</option><option>Em elaboração</option><option>Concluída</option></select><span id="aprCount">0 APRs</span></div>
 <div id="aprList" class="record-list"><div class="empty-state">Nenhuma APR cadastrada. Clique em “Nova APR” para começar.</div></div></section>
 
-      <section class="page module-placeholder" id="page-checklists">
-
-        <div class="module-empty"><span class="module-empty-icon">◇</span><h2>Área preparada</h2><p>Este módulo já faz parte da estrutura de navegação. Vamos configurar seus recursos em uma próxima etapa, mantendo o mesmo padrão visual em computador, tablet e celular.</p></div>
+      <section class="page" id="page-checklists">
+        <div class="section-heading checklist-manager-heading"><div><span class="eyebrow">PREVENÇÃO E CONTROLE OPERACIONAL</span><h2>Checklists de segurança</h2><p>Crie inspeções específicas por atividade e equipamento, registre evidências e acompanhe as pendências.</p></div><button type="button" class="btn btn-primary" id="newSafetyChecklist">＋ Novo checklist</button></div>
+        <div class="stats-grid checklist-manager-stats">
+          <div class="stat-card"><span class="stat-label">Total de checklists</span><strong id="safetyCheckTotal">0</strong><small>Registros neste dispositivo</small></div>
+          <div class="stat-card"><span class="stat-label">Em preenchimento</span><strong id="safetyCheckDraft">0</strong><small>Inspeções não finalizadas</small></div>
+          <div class="stat-card"><span class="stat-label">Concluídos</span><strong id="safetyCheckDone">0</strong><small>Inspeções finalizadas</small></div>
+          <div class="stat-card"><span class="stat-label">Com não conformidades</span><strong id="safetyCheckIssues">0</strong><small>Exigem tratamento</small></div>
+        </div>
+        <section class="form-panel safety-check-editor" id="safetyCheckEditor" hidden>
+          <div class="panel-title"><span class="step-number">01</span><div><h2 id="safetyCheckEditorTitle">Novo checklist de segurança</h2><p>Selecione a atividade e os equipamentos. Os itens serão ajustados automaticamente.</p></div></div>
+          <form id="safetyCheckForm">
+            <input type="hidden" name="id">
+            <div class="form-grid">
+              <label class="field">Tipo de trabalho<select name="tipoTrabalho" id="safetyCheckWork" required><option value="">Selecione a atividade</option><option>Trabalho em altura</option><option>Trabalho a quente</option><option>Espaço confinado</option><option>Elétrica</option><option>Manutenção industrial</option><option>Telhados</option><option>Movimentação de cargas</option><option>Trabalho com empilhadeiras</option><option>Escavação</option><option>Outros</option></select></label>
+              <label class="field">Data da inspeção<input name="data" type="date" required></label>
+              <label class="field">Local / setor<input name="local" required placeholder="Local onde será realizada a atividade"></label>
+              <label class="field">Responsável pela inspeção<input name="responsavel" required placeholder="Nome completo"></label>
+              <label class="field span-2">PT relacionada (opcional)<select name="ptId" id="safetyCheckPt"><option value="">Sem vínculo com uma PT</option></select></label>
+            </div>
+            <div class="safety-check-equipment"><strong>Equipamentos utilizados</strong><p>Marque todos os que serão utilizados na atividade.</p><div class="choice-grid">
+              <label class="choice-card"><input type="checkbox" name="equipamentos" value="PTA"><span class="choice-symbol">▥</span><strong>PTA</strong><small>Plataforma elevatória</small></label>
+              <label class="choice-card"><input type="checkbox" name="equipamentos" value="Escadas"><span class="choice-symbol">⇧</span><strong>Escadas</strong><small>Escadas portáteis</small></label>
+              <label class="choice-card"><input type="checkbox" name="equipamentos" value="Andaimes"><span class="choice-symbol">▦</span><strong>Andaimes</strong><small>Montagem e utilização</small></label>
+            </div></div>
+            <div class="panel-title safety-check-items-title"><span class="step-number">02</span><div><h2>Itens de verificação</h2><p>Responda a cada item. Não conformidades exigem descrição e ação necessária.</p></div></div>
+            <div class="checklist-legend"><span><i class="legend-dot ok"></i> Conforme</span><span><i class="legend-dot no"></i> Não conforme</span><span><i class="legend-dot na"></i> Não se aplica</span></div>
+            <div id="safetyCheckItems"></div>
+            <div class="checklist-summary" id="safetyCheckSummary">Selecione o tipo de trabalho para carregar os itens.</div>
+            <label class="field safety-check-notes">Observações gerais<textarea name="observacoes" rows="3" placeholder="Registre observações, recomendações e ações complementares."></textarea></label>
+            <div class="form-actions"><button type="button" class="btn btn-secondary" id="cancelSafetyCheck">Cancelar</button><button type="button" class="btn btn-secondary" id="saveSafetyCheckDraft">Salvar preenchimento</button><button type="submit" class="btn btn-primary">Concluir checklist</button></div>
+          </form>
+        </section>
+        <div class="history-toolbar safety-check-toolbar"><input id="safetyCheckSearch" type="search" placeholder="Buscar por atividade, local ou responsável..." aria-label="Buscar checklists"><select id="safetyCheckStatus" aria-label="Filtrar situação"><option value="todos">Todas as situações</option><option>Em preenchimento</option><option>Concluído</option></select><span id="safetyCheckCount">0 registros</span></div>
+        <div id="safetyCheckList" class="record-list"><div class="empty-state">Nenhum checklist registrado. Clique em “Novo checklist” para começar.</div></div>
       </section>
 
       <section class="page module-placeholder" id="page-trabalhadores">
@@ -219,7 +250,7 @@
       window.setInterval(atualizarDataHora, 1000);
     })();
   </script>
-  <script src="app.js?v=tati-safe-v36"></script>
+  <script src="app.js?v=tati-safe-v37"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
       window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
