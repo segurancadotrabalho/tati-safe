@@ -43,17 +43,64 @@
     setupSignature($('.signature-pad',wrapper));
     const epiHost=document.createElement('section');epiHost.className='worker-epi-section';epiHost.innerHTML='<button type="button" class="worker-epi-toggle" aria-expanded="false"><span><strong>Conferência individual dos EPIs</strong><small>Verificar os equipamentos deste trabalhador</small></span><span class="worker-epi-chevron" aria-hidden="true">⌄</span></button><div class="worker-epi-content" hidden><div class="worker-epi-list"></div></div>';wrapper.insertBefore(epiHost,$('.signature-wrap',wrapper));$('.worker-epi-toggle',epiHost).addEventListener('click',()=>{const toggle=$('.worker-epi-toggle',epiHost);const content=$('.worker-epi-content',epiHost);const expanded=toggle.getAttribute('aria-expanded')==='true';toggle.setAttribute('aria-expanded',String(!expanded));content.hidden=expanded;});renderWorkersEpis();
     $('.remove-worker',wrapper).addEventListener('click',()=>wrapper.remove());
-    $('.clear-signature',wrapper).addEventListener('click',()=>{const c=$('.signature-pad',wrapper),ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);});
+    $('.clear-signature',wrapper).addEventListener('click',()=>$('.signature-pad',wrapper).clearSignature());
   }
   function setupSignature(canvas) {
-    const ctx=canvas.getContext('2d'); let drawing=false, signed=false;
-    const resize=()=>{const ratio=window.devicePixelRatio||1, rect=canvas.getBoundingClientRect();const old=signed?canvas.toDataURL():null;canvas.width=rect.width*ratio;canvas.height=rect.height*ratio;ctx.setTransform(ratio,0,0,ratio,0,0);ctx.lineWidth=2;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#183c59';if(old){const img=new Image();img.onload=()=>ctx.drawImage(img,0,0,rect.width,rect.height);img.src=old;}};
-    resize();
-    const point=e=>{const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};};
-    canvas.addEventListener('pointerdown',e=>{drawing=true;signed=true;canvas.setPointerCapture(e.pointerId);const p=point(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});
-    canvas.addEventListener('pointermove',e=>{if(!drawing)return;const p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke();});
-    ['pointerup','pointercancel','lostpointercapture'].forEach(name=>canvas.addEventListener(name,()=>drawing=false));
+    const ctx=canvas.getContext('2d');
+    let drawing=false, signed=false, lastPoint=null;
+    const configureContext=ratio=>{
+      ctx.setTransform(ratio,0,0,ratio,0,0);
+      ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#183c59';
+    };
+    const resize=()=>{
+      const rect=canvas.getBoundingClientRect();
+      if(!rect.width)return;
+      const previous=signed?canvas.toDataURL('image/png'):null;
+      const ratio=Math.max(1,window.devicePixelRatio||1);
+      canvas.width=Math.round(rect.width*ratio);
+      canvas.height=Math.round( Math.max(110,rect.height)*ratio);
+      configureContext(ratio);
+      if(previous){
+        const image=new Image();
+        image.onload=()=>ctx.drawImage(image,0,0,rect.width,Math.max(110,rect.height));
+        image.src=previous;
+      }
+    };
+    const point=e=>{
+      const rect=canvas.getBoundingClientRect();
+      return {x:e.clientX-rect.left,y:e.clientY-rect.top};
+    };
+    const start=e=>{
+      if(e.pointerType==='mouse'&&e.button!==0)return;
+      e.preventDefault();
+      const p=point(e);
+      drawing=true;signed=true;lastPoint=p;canvas.dataset.signed='true';
+      try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+      ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+0.01,p.y+0.01);ctx.stroke();
+    };
+    const move=e=>{
+      if(!drawing)return;
+      e.preventDefault();
+      const p=point(e);
+      ctx.beginPath();ctx.moveTo(lastPoint.x,lastPoint.y);ctx.lineTo(p.x,p.y);ctx.stroke();
+      lastPoint=p;
+    };
+    const stop=()=>{drawing=false;lastPoint=null;};
+    canvas.addEventListener('pointerdown',start);
+    canvas.addEventListener('pointermove',move);
+    ['pointerup','pointercancel','lostpointercapture'].forEach(name=>canvas.addEventListener(name,stop));
+    if('ResizeObserver' in window){
+      const observer=new ResizeObserver(()=>resize());
+      observer.observe(canvas);
+    }else{
+      window.addEventListener('resize',resize);
+    }
+    requestAnimationFrame(resize);
     canvas.dataset.signed='false';
+    canvas.clearSignature=()=>{
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      signed=false;drawing=false;lastPoint=null;canvas.dataset.signed='false';
+    };
     Object.defineProperty(canvas,'hasSignature',{get:()=>signed});
   }
   const checklistBase = [
@@ -293,6 +340,8 @@
     const unjustified=checklist.filter(item=>item.status==='nao_conforme'&&!item.justificativa);
     if(unanswered.length){toast(`Responda todos os itens do checklist (${unanswered.length} pendente(s)).`);$('#safetyChecklist [data-check-item] input:not(:checked)')?.focus();return;}
     if(unjustified.length){toast('Descreva todas as não conformidades antes de salvar.');$('[data-justification]',$('#safetyChecklist [data-check-item="'+unjustified[0].key+'"]'))?.focus();return;}
+    const unsigned=workerCards.find(card=>!$('.signature-pad',card).hasSignature);
+    if(unsigned){toast('A assinatura de todos os trabalhadores é obrigatória.');$('.signature-pad',unsigned).scrollIntoView({behavior:'smooth',block:'center'});return;}
     const people=workerCards.map(card=>({
       nome:$('.worker-name',card).value.trim(),
       pressaoSistolica:$('.worker-sys',card).value,
