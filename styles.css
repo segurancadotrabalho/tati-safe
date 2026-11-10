@@ -203,3 +203,16 @@ body,.main-content{background:var(--canvas);color:var(--ink)}
 .check-item:focus-within{background:#fcfbff}
 .check-justification textarea:focus{outline:2px solid rgba(224,82,96,.18);border-color:#e05260}
 @media(max-width:700px){.activity-epi-option{padding:12px}.worker-epi-section{padding:12px}.check-item{padding:13px 0}}
+
+
+/* Conferência individual de EPIs recolhível por trabalhador */
+.worker-epi-section{padding:0!important;overflow:hidden;border:1px solid #e6e2ef;border-left:3px solid #7047eb;border-radius:12px;background:#fff}
+.worker-epi-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border:0;background:#faf9fd;color:#39265f;text-align:left;cursor:pointer}
+.worker-epi-toggle span:first-child{display:flex;flex-direction:column;gap:3px}
+.worker-epi-toggle strong{font-size:14px}
+.worker-epi-toggle small{font-size:12px;color:#777487;font-weight:400}
+.worker-epi-chevron{font-size:22px;line-height:1;transition:transform .2s ease}
+.worker-epi-toggle[aria-expanded="true"] .worker-epi-chevron{transform:rotate(180deg)}
+.worker-epi-content{padding:12px 14px 14px}
+.worker-epi-content[hidden]{display:none!important}
+@media(max-width:700px){.worker-epi-toggle{padding:13px}.worker-epi-content{padding:10px}}
