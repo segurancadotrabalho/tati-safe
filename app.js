@@ -20,6 +20,7 @@
     $('#pageHeading').textContent=labels[page] || 'TATI SAFE';
     $('#sidebar').classList.remove('open');
     if(page==='historico') renderHistory();
+    if(page==='analises') renderAprs();
     if(page==='em-andamento') renderRunning();
     if(page==='aguardando') renderPending();
     if(page==='inicio') renderDashboard();
@@ -683,6 +684,69 @@
     const details=[`PT — ${r.local}`,`Tipo: ${r.tipoTrabalho}`,`Serviço: ${r.servico}`,`Início: ${formatDate(r.dataInicio)}`,`Término: ${formatDate(r.dataFim)}`,`Equipamentos: ${(r.equipamentos||[]).join(', ')||'Não informado'}`,`Responsável execução: ${r.responsavelExecucao}`,`Responsável área: ${r.responsavelArea}`,`Segurança do Trabalho: ${r.seguranca}`,`Trabalhadores:\n${people||'Não informado'}`,`EPIs necessários:\n${(r.episAtividade||[]).join(', ')||'Não registrado'}`,`EPIs por trabalhador:\n${(r.trabalhadores||[]).map(p=>p.nome+': '+(p.episConferidos||[]).map(e=>e.epi+' — '+(e.status==='adequado'?'Conferido':'Pendente')).join('; ')).join('\n')}`,`Checklist de segurança:\n${(r.checklist||[]).map((item,i)=>`${i+1}. ${item.pergunta} — ${item.status==='conforme'?'Conforme':item.status==='nao_conforme'?'Não conforme':'Não se aplica'}${item.justificativa?' | Pendência: '+item.justificativa:''}`).join('\n')||'Não registrado'}`,`Observações: ${r.observacoes||'—'}`].join('\n\n');
     alert(details);
   }
+
+  const APR_KEY='tatiSafe.aprs.v1';
+  const readAprs=()=>{try{return JSON.parse(localStorage.getItem(APR_KEY)||'[]');}catch{return [];}};
+  const saveAprs=a=>localStorage.setItem(APR_KEY,JSON.stringify(a));
+  function renderAprPtOptions(selected=''){
+    const el=$('#aprPtSelect');el.innerHTML='<option value="">Sem vínculo com uma PT</option>'+readRecords().map(p=>'<option value="'+escapeHtml(p.id)+'">'+escapeHtml((p.local||'Local não informado')+' · '+(p.tipoTrabalho||'PT'))+'</option>').join('');el.value=selected;
+  }
+  function riskRow(r={}){
+    const levels=v=>[1,2,3,4,5].map(n=>'<option value="'+n+'" '+(String(v)===String(n)?'selected':'')+'>'+n+'</option>').join('');
+    const field=(key,label,val,required=false)=>'<label class="field">'+label+'<input data-risk="'+key+'" value="'+escapeHtml(val||'')+'" '+(required?'required':'')+'></label>';
+    const select=(key,label,val)=>'<label class="field">'+label+'<select data-risk="'+key+'" '+(key==='probabilidade'||key==='severidade'?'required':'')+'><option value="">Selecione</option>'+levels(val)+'</select></label>';
+    return '<article class="apr-risk-card"><div class="apr-risk-card-head"><strong>Etapa de risco</strong><button type="button" data-remove-risk class="apr-risk-remove">Remover</button></div><div class="form-grid">'+field('etapa','Etapa da atividade',r.etapa,true)+field('perigo','Perigo identificado',r.perigo,true)+field('risco','Risco / evento indesejado',r.risco,true)+field('consequencia','Possíveis consequências',r.consequencia)+field('controle','Medidas de prevenção / controle',r.controle,true)+select('probabilidade','Probabilidade inicial',r.probabilidade)+select('severidade','Severidade inicial',r.severidade)+select('probResidual','Probabilidade residual',r.probResidual)+select('sevResidual','Severidade residual',r.sevResidual)+'<div class="apr-risk-score"><span>Risco inicial</span><strong data-score>—</strong><small>Probabilidade × severidade</small></div><div class="apr-risk-score residual"><span>Risco residual</span><strong data-residual>—</strong><small>Após controles</small></div></div></article>';
+  }
+  function updateRiskScores(){
+    $$('#aprRiskList .apr-risk-card').forEach((card,i)=>{
+      card.querySelector('.apr-risk-card-head strong').textContent='Etapa '+(i+1);
+      const v=k=>Number($('[data-risk="'+k+'"]',card)?.value||0),label=n=>!n?'—':n<=4?'Baixo':n<=9?'Moderado':n<=16?'Alto':'Crítico';
+      const a=v('probabilidade')*v('severidade'),b=v('probResidual')*v('sevResidual');
+      $('[data-score]',card).textContent=a?a+' · '+label(a):'—';$('[data-residual]',card).textContent=b?b+' · '+label(b):'—';
+    });
+  }
+  function addRisk(r){$('#aprRiskList').insertAdjacentHTML('beforeend',riskRow(r||{}));updateRiskScores();}
+  function renderAprs(){
+    const all=readAprs(),term=$('#aprSearch').value.trim().toLocaleLowerCase('pt-BR'),status=$('#aprStatusFilter').value;
+    $('#aprTotal').textContent=all.length;$('#aprDraft').textContent=all.filter(a=>a.status==='Em elaboração').length;$('#aprDone').textContent=all.filter(a=>a.status==='Concluída').length;
+    const list=all.filter(a=>(status==='todas'||a.status===status)&&[a.atividade,a.local,a.responsavel,a.descricao].join(' ').toLocaleLowerCase('pt-BR').includes(term)).sort((a,b)=>(b.atualizadoEm||'').localeCompare(a.atualizadoEm||''));
+    $('#aprCount').textContent=list.length+' de '+all.length+' APR(s)';
+    $('#aprList').innerHTML=list.length?list.map(a=>'<article class="record-item apr-record"><div class="apr-record-main"><strong>'+escapeHtml(a.atividade)+'</strong><small>'+escapeHtml(a.local)+' · '+escapeHtml(a.responsavel)+'</small><div class="apr-record-meta"><span>Data: '+escapeHtml(a.data)+'</span><span>'+(a.riscos||[]).length+' etapa(s) de risco</span></div></div><div class="record-meta"><span class="apr-status '+(a.status==='Concluída'?'done':'draft')+'">'+escapeHtml(a.status)+'</span><div class="record-actions"><button type="button" data-apr-view="'+escapeHtml(a.id)+'">Detalhes</button><button type="button" data-apr-edit="'+escapeHtml(a.id)+'">Editar</button><button type="button" class="delete" data-apr-delete="'+escapeHtml(a.id)+'">Excluir</button></div></div></article>').join(''):'<div class="empty-state">Nenhuma APR encontrada. Altere a busca ou cadastre uma nova análise.</div>';
+  }
+  function openApr(a=null){
+    const form=$('#aprForm');form.reset();$('#aprRiskList').innerHTML='';
+    $('#aprEditorTitle').textContent=a?'Editar Análise Preliminar de Risco':'Nova Análise Preliminar de Risco';
+    if(a){Object.entries(a).forEach(([k,v])=>{if(form.elements.namedItem(k)&&typeof v==='string')form.elements.namedItem(k).value=v;});renderAprPtOptions(a.ptId||'');(a.riscos||[]).forEach(addRisk);}
+    else{renderAprPtOptions();form.elements.namedItem('data').value=new Date().toISOString().slice(0,10);form.elements.namedItem('status').value='Em elaboração';addRisk();}
+    if(!$('#aprRiskList').children.length)addRisk();
+    $('#aprEditor').hidden=false;$('#aprEditor').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  function closeApr(){$('#aprEditor').hidden=true;$('#aprForm').reset();$('#aprRiskList').innerHTML='';}
+  function showApr(a){
+    const risks=(a.riscos||[]).map((r,i)=>(i+1)+'. '+r.etapa+'\nPerigo: '+r.perigo+'\nRisco: '+r.risco+'\nConsequência: '+(r.consequencia||'—')+'\nAvaliação inicial: '+r.probabilidade+' × '+r.severidade+'\nControles: '+r.controle+'\nAvaliação residual: '+(r.probResidual||'—')+' × '+(r.sevResidual||'—')).join('\n\n');
+    alert('ANÁLISE PRELIMINAR DE RISCO\n\nAtividade: '+a.atividade+'\nLocal: '+a.local+'\nData: '+a.data+'\nResponsável: '+a.responsavel+'\nSituação: '+a.status+'\n\nDescrição:\n'+a.descricao+'\n\nETAPAS E CONTROLES\n'+risks+'\n\nEPIs / EPCs: '+(a.protecao||'—')+'\nPlano de emergência: '+(a.emergencia||'—')+'\nObservações: '+(a.observacoes||'—'));
+  }
+  $('#newAprButton').addEventListener('click',()=>openApr());
+  $('#cancelApr').addEventListener('click',closeApr);
+  $('#addAprRisk').addEventListener('click',()=>addRisk());
+  $('#aprRiskList').addEventListener('click',e=>{if(e.target.closest('[data-remove-risk]')){e.target.closest('.apr-risk-card').remove();if(!$('#aprRiskList').children.length)addRisk();updateRiskScores();}});
+  $('#aprRiskList').addEventListener('input',e=>{if(e.target.matches('[data-risk]'))updateRiskScores();});
+  $('#aprRiskList').addEventListener('change',e=>{if(e.target.matches('[data-risk]'))updateRiskScores();});
+  $('#aprForm').addEventListener('submit',e=>{
+    e.preventDefault();const form=e.currentTarget;if(!form.reportValidity())return;
+    const riscos=$$('#aprRiskList .apr-risk-card').map(card=>Object.fromEntries($$('[data-risk]',card).map(el=>[el.dataset.risk,el.value.trim()])));
+    if(!riscos.length||riscos.some(r=>!r.etapa||!r.perigo||!r.risco||!r.controle||!r.probabilidade||!r.severidade)){toast('Complete os campos obrigatórios das etapas de risco.');return;}
+    const data=Object.fromEntries(new FormData(form).entries()),all=readAprs(),id=data.id||((crypto.randomUUID&&crypto.randomUUID())||String(Date.now()));
+    const old=all.find(a=>a.id===id),record={...data,id,riscos,criadoEm:old?.criadoEm||new Date().toISOString(),atualizadoEm:new Date().toISOString()};
+    const i=all.findIndex(a=>a.id===id);if(i>=0)all[i]=record;else all.unshift(record);saveAprs(all);closeApr();renderAprs();toast(i>=0?'APR atualizada.':'APR cadastrada com sucesso.');
+  });
+  $('#aprSearch').addEventListener('input',renderAprs);$('#aprStatusFilter').addEventListener('change',renderAprs);
+  $('#aprList').addEventListener('click',e=>{
+    const v=e.target.closest('[data-apr-view]');if(v){const a=readAprs().find(x=>x.id===v.dataset.aprView);if(a)showApr(a);return;}
+    const ed=e.target.closest('[data-apr-edit]');if(ed){const a=readAprs().find(x=>x.id===ed.dataset.aprEdit);if(a)openApr(a);return;}
+    const d=e.target.closest('[data-apr-delete]');if(d){if(!confirm('Deseja excluir esta APR?'))return;saveAprs(readAprs().filter(x=>x.id!==d.dataset.aprDelete));renderAprs();toast('APR excluída.');}
+  });
+
   renderDashboard();
 
   function updateClock(){
