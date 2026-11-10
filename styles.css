@@ -320,3 +320,5 @@ body,.main-content{background:var(--canvas);color:var(--ink)}
 .record-clickable{cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
 .record-clickable:hover{transform:translateY(-2px);border-color:#b9a4f5;box-shadow:0 10px 24px rgba(91,57,184,.10)}
 .record-clickable:focus-visible{outline:3px solid rgba(112,71,235,.4);outline-offset:3px}
+
+.metric-clear{border:0;background:transparent;color:#7047eb;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:2px 4px}
