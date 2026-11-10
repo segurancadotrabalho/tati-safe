@@ -156,7 +156,7 @@
       assinatura:$('.signature-pad',card).hasSignature?$('.signature-pad',card).toDataURL('image/png'):null
     }));
     const data=Object.fromEntries(new FormData(form).entries());
-    const record={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),criadoEm:new Date().toISOString(),status:'Em andamento',...data,equipamentos:$('input[name="equipamentos"]:checked',form).map(el=>el.value),checklist,trabalhadores:people};
+    const record={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),criadoEm:new Date().toISOString(),status:'Em andamento',...data,equipamentos:$$('input[name="equipamentos"]:checked',form).map(el=>el.value),checklist,trabalhadores:people};
     const records=readRecords();records.unshift(record);saveRecords(records);
     form.reset();$('#workersList').innerHTML='';workers=0;addWorker();
     toast('Permissão salva neste dispositivo.');navigate('historico');
