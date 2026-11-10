@@ -322,3 +322,5 @@ body,.main-content{background:var(--canvas);color:var(--ink)}
 .record-clickable:focus-visible{outline:3px solid rgba(112,71,235,.4);outline-offset:3px}
 
 .metric-clear{border:0;background:transparent;color:#7047eb;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:2px 4px}
+
+.stat-card-button{position:relative;overflow:hidden}.stat-card-button:active{transform:scale(.985)}.stat-card-button.metric-selected{border-color:#7047eb;box-shadow:0 0 0 2px rgba(112,71,235,.14),0 8px 22px rgba(48,35,82,.08);background:linear-gradient(145deg,#fff 0%,#faf8ff 100%)}.stat-card-button.metric-selected:before{content:'FILTRO ATIVO';position:absolute;right:12px;top:10px;font-size:8px;letter-spacing:.06em;font-weight:800;color:#7047eb}.stat-card-button.metric-selected .stat-card-arrow{transform:translateX(4px)}
