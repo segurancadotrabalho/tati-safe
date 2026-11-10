@@ -24,6 +24,7 @@
     if(nav){navigate(nav.dataset.page || nav.dataset.go);}
   });
   $('#menuButton').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
+  $('#menuSearch').addEventListener('input',event=>{const term=event.target.value.toLocaleLowerCase('pt-BR');$('.nav-link').forEach(link=>{link.style.display=link.textContent.toLocaleLowerCase('pt-BR').includes(term)?'flex':'none';});$('.nav-section-label').forEach(label=>{let next=label.nextElementSibling,visible=false;while(next&& !next.classList.contains('nav-section-label')){if(next.classList.contains('nav-link')&&next.style.display!=='none')visible=true;next=next.nextElementSibling;}label.style.display=visible?'block':'none';});});
 
   function addWorker() {
     workers++;
