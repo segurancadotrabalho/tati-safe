@@ -57,61 +57,111 @@
     Object.defineProperty(canvas,'hasSignature',{get:()=>signed});
   }
   const checklistBase = [
-    ['area','A área de trabalho foi inspecionada e está livre de riscos não controlados?'],
-    ['isolamento','A área está isolada e sinalizada para impedir acesso de pessoas não envolvidas?'],
-    ['apr','A análise preliminar de riscos (APR) e as orientações da atividade foram realizadas com a equipe?'],
-    ['epi','Os EPIs necessários foram definidos, estão disponíveis e em boas condições?'],
-    ['ferramentas','As ferramentas e os equipamentos necessários foram inspecionados e estão adequados?'],
-    ['energia','As fontes de energia perigosas foram identificadas e, quando necessário, bloqueadas e identificadas?'],
-    ['emergencia','A equipe conhece os meios de comunicação e o procedimento de emergência aplicável?'],
-    ['condicoes','As condições do ambiente (iluminação, organização, clima e acesso) permitem executar o serviço com segurança?']
+    ['area','A área foi inspecionada e os riscos do entorno foram identificados e controlados?'],
+    ['isolamento','O local está isolado, sinalizado e com acesso restrito às pessoas envolvidas?'],
+    ['apr','A APR foi elaborada com participação da equipe e todos compreenderam os riscos e controles?'],
+    ['epi','Os EPIs foram definidos pela avaliação de riscos, estão disponíveis, íntegros e com CA válido quando aplicável?'],
+    ['ferramentas','Ferramentas, máquinas e acessórios foram inspecionados e são adequados à tarefa?'],
+    ['energia','As fontes de energia elétrica, mecânica, hidráulica, pneumática e outras foram identificadas e controladas?'],
+    ['emergencia','A equipe conhece os meios de comunicação, recursos de emergência e procedimento de abandono?'],
+    ['ambiente','Iluminação, ventilação, clima, limpeza, acesso e condições do piso permitem o trabalho seguro?'],
+    ['interferencias','Atividades simultâneas e interferências com outras equipes foram avaliadas e coordenadas?'],
+    ['competencia','Todos os envolvidos possuem capacitação, autorização e condição para executar a atividade?'],
+    ['ordem','A organização, armazenamento de materiais e descarte de resíduos foram planejados?']
   ];
   const checklistByWork = {
-    'Trabalho em altura': [['altura_analise','A atividade em altura foi planejada e a análise de risco específica foi realizada?'],['altura_sistema','O sistema de proteção contra quedas foi definido e inspecionado?'],['altura_resgate','Existe plano e recursos para resgate em caso de emergência?'],['altura_clima','As condições climáticas permitem a execução segura?']],
-    'Trabalho a quente': [['quente_area','A área foi verificada quanto a materiais combustíveis e fontes de ignição?'],['quente_extintor','Há extintor adequado e acessível?'],['quente_faiscas','Áreas próximas e níveis inferiores estão protegidos contra fagulhas?'],['quente_pos','Foi definido monitoramento após o término do serviço?']],
-    'Espaço confinado': [['espaco_pet','A PET aplicável foi emitida e está válida?'],['espaco_atmosfera','A atmosfera foi avaliada e será monitorada conforme procedimento?'],['espaco_vigia','Há vigia dedicado e comunicação permanente?'],['espaco_resgate','Equipe e plano de resgate estão disponíveis?']],
-    'Elétrica': [['eletrica_bloqueio','Foi priorizada a desenergização e aplicado bloqueio quando aplicável?'],['eletrica_teste','A ausência de tensão foi verificada com instrumento adequado?'],['eletrica_zonas','As zonas de risco e distâncias de segurança foram respeitadas?'],['eletrica_autorizacao','Os trabalhadores estão qualificados e autorizados?']],
-    'Manutenção industrial': [['manut_bloqueio','Máquinas e fontes de energia foram isoladas, bloqueadas e testadas?'],['manut_guardas','Proteções serão reinstaladas antes da liberação?'],['manut_ferramentas','Ferramentas e peças estão adequadas e em condições seguras?']],
-    'Telhados': [['telhado_cobertura','A resistência e as condições da cobertura foram avaliadas?'],['telhado_aberturas','Aberturas, bordas frágeis e claraboias estão protegidas?'],['telhado_acesso','O acesso e a circulação foram planejados e controlados?'],['telhado_resgate','Há proteção contra quedas e plano de resgate adequado?']],
-    'Movimentação de cargas': [['carga_plano','A movimentação foi planejada considerando peso e centro de gravidade?'],['carga_acessorios','Acessórios de içamento foram inspecionados e são compatíveis?'],['carga_isolamento','A área está isolada e sem pessoas sob cargas suspensas?'],['carga_sinaleiro','Há comunicação definida e sinaleiro quando necessário?']],
-    'Trabalho com empilhadeiras': [['empilhadeira_check','A empilhadeira foi inspecionada antes do uso?'],['empilhadeira_operador','O operador está habilitado e autorizado?'],['empilhadeira_rota','A rota está livre e segregada de pedestres?'],['empilhadeira_carga','A carga está estável e dentro da capacidade?']],
-    'Escavação': [['escavacao_interferencias','As interferências subterrâneas foram identificadas?'],['escavacao_solo','A estabilidade do solo e necessidade de escoramento foram avaliadas?'],['escavacao_borda','Há proteção e distância segura de materiais nas bordas?'],['escavacao_acesso','Há acesso seguro e inspeção das condições da escavação?']]
+    'Trabalho em altura': [
+      ['altura_analise','A atividade foi planejada e a análise de risco de trabalho em altura foi realizada?'],
+      ['altura_hierarquia','Foram priorizadas medidas para evitar o trabalho em altura e, quando inviável, proteção coletiva?'],
+      ['altura_sistema','O sistema de proteção individual contra quedas é adequado, compatível, inspecionado e ancorado em ponto previsto?'],
+      ['altura_inspecao','Cinturão, talabarte, conectores e trava-quedas foram inspecionados antes do uso?'],
+      ['altura_resgate','Existe plano de emergência e resgate, equipe capacitada e recursos disponíveis no local?'],
+      ['altura_clima','Vento, chuva, descargas atmosféricas e demais condições climáticas foram avaliados?'],
+      ['altura_objetos','Ferramentas e materiais estão presos ou acondicionados para evitar queda de objetos?']
+    ],
+    'Trabalho a quente': [
+      ['quente_autorizacao','A autorização para trabalho a quente foi emitida após avaliação dos riscos?'],
+      ['quente_combustiveis','Materiais combustíveis, inflamáveis e fontes de vazamento foram removidos ou protegidos?'],
+      ['quente_atmosfera','Quando aplicável, a atmosfera foi avaliada quanto a gases, vapores e risco de explosividade?'],
+      ['quente_extintor','Há extintor compatível, inspecionado, desobstruído e acessível junto ao serviço?'],
+      ['quente_faiscas','Fagulhas e partículas estão contidas, inclusive em níveis inferiores e no lado oposto da estrutura?'],
+      ['quente_cilindros','Cilindros, mangueiras, reguladores e conexões estão íntegros, fixados e afastados de calor?'],
+      ['quente_vigia','Foi definido vigia de incêndio e período de monitoramento após o término, conforme procedimento?']
+    ],
+    'Espaço confinado': [
+      ['espaco_pet','A Permissão de Entrada e Trabalho (PET) foi emitida, está válida e disponível no local?'],
+      ['espaco_isolamento','O espaço foi isolado de energias, linhas, produtos e possíveis entradas de fluidos?'],
+      ['espaco_atmosfera','A atmosfera foi testada antes da entrada e será monitorada conforme a PET?'],
+      ['espaco_ventilacao','A ventilação e os equipamentos utilizados são adequados aos riscos identificados?'],
+      ['espaco_vigia','Há vigia exclusivo, comunicação contínua e controle de entrada e saída?'],
+      ['espaco_resgate','Equipe, equipamentos e plano de resgate estão disponíveis sem depender de improviso?'],
+      ['espaco_equipe','Trabalhadores, supervisor de entrada e vigia estão capacitados e autorizados?']
+    ],
+    'Elétrica': [
+      ['eletrica_autorizacao','Os trabalhadores estão qualificados, capacitados e autorizados para a intervenção?'],
+      ['eletrica_desenergizacao','A desenergização foi priorizada e as etapas de seccionamento, bloqueio e sinalização foram cumpridas?'],
+      ['eletrica_teste','A ausência de tensão foi constatada com instrumento adequado e testado antes e depois da medição?'],
+      ['eletrica_aterramento','O aterramento temporário e a equipotencialização foram aplicados quando exigidos?'],
+      ['eletrica_zonas','As zonas controladas, de risco e distâncias de segurança foram respeitadas?'],
+      ['eletrica_arco','O risco de arco elétrico foi avaliado e as medidas de proteção correspondentes foram adotadas?'],
+      ['eletrica_religamento','Foi definido controle contra religamento acidental e procedimento para reenergização?']
+    ],
+    'Manutenção industrial': [
+      ['manut_bloqueio','Todas as fontes de energia foram identificadas, isoladas, bloqueadas e testadas antes da intervenção?'],
+      ['manut_pressao','Energias residuais, pressão, gravidade, temperatura e partes móveis foram eliminadas ou contidas?'],
+      ['manut_guardas','Proteções e dispositivos de segurança serão reinstalados e testados antes da liberação?'],
+      ['manut_pecas','Peças, ferramentas e dispositivos de içamento são compatíveis com a intervenção?'],
+      ['manut_partida','Foi impedida a partida inesperada durante a execução e comunicada a equipe envolvida?'],
+      ['manut_teste','A área está livre de pessoas e materiais antes dos testes funcionais?']
+    ],
+    'Telhados': [
+      ['telhado_cobertura','A resistência, inclinação e condições da cobertura foram avaliadas antes do acesso?'],
+      ['telhado_fragil','Telhas frágeis, claraboias, aberturas e bordas estão identificadas e protegidas?'],
+      ['telhado_acesso','O acesso, circulação e transporte de materiais foram planejados e controlados?'],
+      ['telhado_ancoragem','Os pontos de ancoragem e sistemas contra quedas são adequados e foram inspecionados?'],
+      ['telhado_clima','Chuva, vento, umidade, calor e risco de descargas atmosféricas foram avaliados?'],
+      ['telhado_resgate','Há plano e meios de resgate compatíveis com o acesso e a configuração do telhado?']
+    ],
+    'Movimentação de cargas': [
+      ['carga_plano','A movimentação foi planejada considerando peso, dimensões, centro de gravidade e percurso?'],
+      ['carga_capacidade','Equipamento e acessórios possuem capacidade identificada e compatível com a carga?'],
+      ['carga_inspecao','Cabos, cintas, correntes, ganchos, manilhas e pontos de pega foram inspecionados?'],
+      ['carga_isolamento','A área está isolada e ninguém permanece sob carga suspensa ou na zona de esmagamento?'],
+      ['carga_sinaleiro','Sinaleiro e operador definiram comunicação e sinais antes do início?'],
+      ['carga_condicoes','Solo, patolamento, estabilidade e interferências aéreas foram avaliados?']
+    ],
+    'Trabalho com empilhadeiras': [
+      ['empilhadeira_check','A inspeção pré-uso foi realizada e defeitos foram comunicados?'],
+      ['empilhadeira_operador','O operador está capacitado, autorizado e em condições de conduzir?'],
+      ['empilhadeira_rota','A rota está definida, sinalizada, livre de obstáculos e segregada de pedestres?'],
+      ['empilhadeira_carga','A carga está estável, corretamente posicionada e dentro da capacidade residual?'],
+      ['empilhadeira_dispositivos','Freios, buzina, iluminação, alarmes, garfos e demais dispositivos estão operacionais?'],
+      ['empilhadeira_estacionamento','Foi definido local seguro para estacionamento, com garfos abaixados e equipamento imobilizado?']
+    ],
+    'Escavação': [
+      ['escavacao_interferencias','Redes enterradas e demais interferências foram localizadas e sinalizadas antes da escavação?'],
+      ['escavacao_solo','Tipo de solo, estabilidade, profundidade e necessidade de escoramento foram avaliados?'],
+      ['escavacao_borda','Materiais, máquinas e cargas estão afastados das bordas conforme avaliação técnica?'],
+      ['escavacao_acesso','Há acesso e saída seguros, proteção contra quedas e controle de entrada?'],
+      ['escavacao_agua','Há controle de água, infiltração, atmosfera perigosa e risco de soterramento?'],
+      ['escavacao_inspecao','A escavação será inspecionada após chuva, alteração das condições ou evento que afete sua estabilidade?']
+    ],
+    'Outros': [
+      ['outros_riscos','Os riscos específicos desta atividade foram identificados e registrados na APR?'],
+      ['outros_controles','As medidas de prevenção foram definidas, comunicadas e verificadas com a equipe?']
+    ]
   };
   const epiByWork = {
-    'Trabalho em altura':['Capacete com jugular','Cinturão tipo paraquedista','Talabarte ou trava-quedas compatível','Calçado de segurança','Luvas adequadas à tarefa','Óculos de segurança'],
-    'Trabalho a quente':['Máscara de solda com filtro adequado','Óculos de segurança','Luvas de raspa ou proteção térmica','Avental e mangotes de raspa','Perneiras de proteção','Calçado de segurança','Proteção respiratória conforme avaliação'],
-    'Espaço confinado':['Capacete com jugular','Óculos de segurança','Luvas adequadas ao risco','Calçado de segurança','Proteção respiratória conforme avaliação atmosférica','Cinturão e sistema de resgate quando previsto'],
-    'Elétrica':['Capacete adequado ao risco elétrico','Óculos ou protetor facial','Luvas isolantes da classe adequada e cobertura','Vestimenta contra arco elétrico conforme estudo','Calçado adequado ao risco elétrico'],
-    'Manutenção industrial':['Capacete de segurança','Óculos de segurança','Luvas adequadas à tarefa','Calçado de segurança','Protetor auditivo conforme avaliação','Proteção respiratória conforme avaliação'],
-    'Telhados':['Capacete com jugular','Cinturão tipo paraquedista','Talabarte ou trava-quedas compatível','Calçado com solado aderente','Luvas adequadas','Óculos de segurança'],
-    'Movimentação de cargas':['Capacete de segurança','Óculos de segurança','Luvas adequadas ao manuseio','Calçado com biqueira','Colete de alta visibilidade quando aplicável'],
-    'Trabalho com empilhadeiras':['Calçado de segurança','Colete de alta visibilidade','Capacete conforme avaliação do local','Óculos conforme risco'],
-    'Escavação':['Capacete de segurança','Óculos de segurança','Luvas adequadas','Calçado de segurança','Colete de alta visibilidade','Proteção respiratória conforme avaliação'],
-    'Outros':['Capacete conforme avaliação','Óculos conforme avaliação','Luvas adequadas ao risco','Calçado de segurança','Proteção auditiva/respiratória conforme avaliação']
-  };
-  const checklistByEquipment = {
-    'PTA': [
-      ['pta_inspecao','A PTA passou por inspeção antes do uso e não apresenta danos ou falhas aparentes?'],
-      ['pta_operador','O operador está capacitado e autorizado para operar a plataforma?'],
-      ['pta_solo','O piso está firme, nivelado e suporta a operação da plataforma?'],
-      ['pta_area','Há distância segura de redes elétricas, obstáculos e circulação de veículos?'],
-      ['pta_cinto','O sistema de proteção contra quedas e o ponto de ancoragem indicado pelo fabricante estão sendo utilizados?']
-    ],
-    'Escadas': [
-      ['escada_estado','A escada está íntegra, sem degraus soltos, trincas, deformações ou improvisos?'],
-      ['escada_apoio','A escada está apoiada em superfície firme e posicionada de forma estável?'],
-      ['escada_fixacao','A escada está fixada ou estabilizada contra escorregamento e deslocamento?'],
-      ['escada_eletrica','Foi verificado o risco de contato com instalações elétricas e escolhido material compatível?'],
-      ['escada_uso','O uso da escada é adequado à tarefa, sem sobrealcance ou transporte de carga que comprometa o equilíbrio?']
-    ],
-    'Andaimes': [
-      ['andaime_montagem','O andaime foi montado, alterado e liberado por trabalhador qualificado/autorizado?'],
-      ['andaime_base','A base está firme, nivelada e com elementos de apoio adequados?'],
-      ['andaime_piso','Os pisos de trabalho estão completos, fixados e sem aberturas perigosas?'],
-      ['andaime_guarda','Há proteção contra quedas nas laterais e acessos, conforme configuração aplicável?'],
-      ['andaime_acesso','O acesso ao andaime é seguro e independente de subir pela estrutura?'],
-      ['andaime_inspecao','O andaime foi inspecionado antes da utilização e está identificado como liberado?']
-    ]
+    'Trabalho em altura':['Capacete com jugular','Cinturão tipo paraquedista','Talabarte ou trava-quedas compatível com o sistema','Calçado de segurança adequado à superfície','Luvas adequadas à tarefa','Óculos de segurança'],
+    'Trabalho a quente':['Máscara de solda com filtro adequado ao processo','Óculos de segurança para preparação e acabamento','Luvas de proteção térmica/solda','Avental de raspa ou vestimenta resistente a chamas','Mangotes e perneiras de proteção quando houver exposição','Calçado de segurança adequado ao risco','Proteção respiratória definida pela avaliação de fumos'],
+    'Espaço confinado':['Capacete com jugular quando houver risco de impacto/queda de objetos','Óculos ou proteção facial conforme o risco','Luvas compatíveis com os agentes presentes','Calçado de segurança adequado ao ambiente','Proteção respiratória definida pela avaliação atmosférica','Cinturão e acessórios de resgate quando previstos na PET'],
+    'Elétrica':['Capacete com classe de proteção adequada ao risco','Óculos de segurança e/ou proteção facial contra arco conforme análise','Luvas isolantes da classe adequada, com cobertura quando requerida','Vestimenta com proteção contra arco elétrico conforme estudo de energia incidente','Calçado de segurança compatível com o risco elétrico'],
+    'Manutenção industrial':['Capacete de segurança conforme risco','Óculos de segurança ou proteção facial conforme tarefa','Luvas adequadas ao risco mecânico, químico ou térmico','Calçado de segurança adequado ao risco','Protetor auditivo conforme avaliação de ruído','Proteção respiratória conforme avaliação de contaminantes'],
+    'Telhados':['Capacete com jugular','Cinturão tipo paraquedista','Talabarte ou trava-quedas compatível com o sistema','Calçado com solado adequado à cobertura','Luvas adequadas à tarefa','Óculos de segurança'],
+    'Movimentação de cargas':['Capacete de segurança conforme risco','Óculos de segurança','Luvas adequadas ao manuseio e sem risco de enroscamento','Calçado de segurança com proteção compatível com a carga','Colete de alta visibilidade quando houver tráfego de veículos'],
+    'Trabalho com empilhadeiras':['Calçado de segurança','Colete de alta visibilidade quando previsto na avaliação da rota','Capacete conforme risco do local','Óculos de segurança conforme risco da operação'],
+    'Escavação':['Capacete de segurança','Óculos de segurança','Luvas adequadas ao material e à tarefa','Calçado de segurança adequado ao terreno','Colete de alta visibilidade quando houver circulação de máquinas','Proteção respiratória conforme avaliação de poeiras/contaminantes'],
+    'Outros':['Capacete conforme avaliação de risco','Óculos de segurança conforme risco','Luvas adequadas ao risco','Calçado de segurança adequado','Proteção auditiva e respiratória conforme avaliação']
   };
   function checklistItems() {
     const selected=$$('input[name="equipamentos"]:checked').map(el=>el.value);
