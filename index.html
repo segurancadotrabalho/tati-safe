@@ -168,8 +168,11 @@
       <section class="page" id="page-checklists">
         <div class="section-heading checklist-manager-heading"><div><span class="eyebrow">PREVENÇÃO E CONTROLE OPERACIONAL</span><h2>Checklists de segurança</h2><p>Crie inspeções específicas por atividade e equipamento, registre evidências e acompanhe as pendências.</p></div><button type="button" class="btn btn-primary" id="newSafetyChecklist">＋ Novo checklist</button></div>
         <div class="stats-grid checklist-manager-stats">
-          <div class="stat-card"><span class="stat-label">Total de checklists</span><strong id="safetyCheckTotal">0</strong><small>Registros neste dispositivo</small></div>
-          <div class="stat-card"><span class="stat-label">Em preenchimento</span><strong id="safetyCheckDraft">0</strong><small>Inspeções não finalizadas</small></div>
+           <button type="button" class="stat-card stat-card-button" data-safety-check-filter="all" aria-pressed="true"><span class="stat-label">Total de checklists</span><strong id="safetyCheckTotal">0</strong><small>Ver todos os registros <span class="stat-card-arrow">→</span></small></button>
+           <button type="button" class="stat-card stat-card-button" data-safety-check-filter="draft" aria-pressed="false"><span class="stat-label">Em preenchimento</span><strong id="safetyCheckDraft">0</strong><small>Ver inspeções não finalizadas <span class="stat-card-arrow">→</span></small></button>
+           <button type="button" class="stat-card stat-card-button" data-safety-check-filter="done" aria-pressed="false"><span class="stat-label">Concluídos</span><strong id="safetyCheckDone">0</strong><small>Ver inspeções finalizadas <span class="stat-card-arrow">→</span></small></button>
+           <button type="button" class="stat-card stat-card-button" data-safety-check-filter="issues" aria-pressed="false"><span class="stat-label">Com não conformidades</span><strong id="safetyCheckIssues">0</strong><small>Ver itens que exigem tratamento <span class="stat-card-arrow">→</span></small></button>
+         </div>          <div class="stat-card"><span class="stat-label">Em preenchimento</span><strong id="safetyCheckDraft">0</strong><small>Inspeções não finalizadas</small></div>
           <div class="stat-card"><span class="stat-label">Concluídos</span><strong id="safetyCheckDone">0</strong><small>Inspeções finalizadas</small></div>
           <div class="stat-card"><span class="stat-label">Com não conformidades</span><strong id="safetyCheckIssues">0</strong><small>Exigem tratamento</small></div>
         </div>
