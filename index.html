@@ -8,7 +8,7 @@
   <title>TATI SAFE | Gestão de PT</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=tati-safe-v33">
+  <link rel="stylesheet" href="styles.css?v=tati-safe-v34">
 </head>
 <body>
   <div class="app-shell">
@@ -124,9 +124,9 @@
       <section class="page" id="page-em-andamento">
         <div class="section-heading active-work-heading"><div><span class="eyebrow">ACOMPANHAMENTO OPERACIONAL</span><h2>Permissões em execução</h2><p>Acompanhe as atividades que ainda estão em andamento.</p></div><button class="btn btn-primary" type="button" data-go="nova-pt">＋ Nova PT</button></div>
         <div class="stats-grid active-work-stats">
-          <article class="stat-card"><span class="stat-icon blue">◷</span><span class="stat-label">PTs em andamento</span><strong id="runningTotal">0</strong><small>Permissões não encerradas</small></article>
-          <article class="stat-card"><span class="stat-icon amber">!</span><span class="stat-label">Prazo previsto vencido</span><strong id="runningOverdue">0</strong><small>Precisam de verificação</small></article>
-          <article class="stat-card"><span class="stat-icon green">♙</span><span class="stat-label">Trabalhadores envolvidos</span><strong id="runningWorkers">0</strong><small>Nas atividades em execução</small></article>
+          <button type="button" class="stat-card stat-card-button" data-metric-filter="running:all" aria-label="Mostrar todas as PTs em andamento"><span class="stat-icon blue">◷</span><span class="stat-label">PTs em andamento</span><strong id="runningTotal">0</strong><small>Ver todas as permissões <span class="stat-card-arrow">→</span></small></button>
+          <button type="button" class="stat-card stat-card-button" data-metric-filter="running:overdue" aria-label="Mostrar PTs com prazo previsto vencido"><span class="stat-icon amber">!</span><span class="stat-label">Prazo previsto vencido</span><strong id="runningOverdue">0</strong><small>Ver prazos vencidos <span class="stat-card-arrow">→</span></small></button>
+          <button type="button" class="stat-card stat-card-button" data-metric-filter="running:workers" aria-label="Mostrar PTs com trabalhadores envolvidos"><span class="stat-icon green">♙</span><span class="stat-label">Trabalhadores envolvidos</span><strong id="runningWorkers">0</strong><small>Ver equipes em execução <span class="stat-card-arrow">→</span></small></button>
         </div>
         <div class="history-toolbar running-toolbar"><input id="runningSearch" type="search" placeholder="Buscar por local, atividade ou responsável..." aria-label="Buscar PTs em andamento"><span id="runningCount">0 permissões</span></div>
         <div id="runningList" class="record-list"><div class="empty-state">Nenhuma PT em andamento no momento.</div></div>
@@ -135,9 +135,9 @@
       <section class="page" id="page-aguardando">
         <div class="section-heading pending-heading"><div><span class="eyebrow">ANÁLISE E APROVAÇÃO</span><h2>Permissões aguardando liberação</h2><p>Confira os dados e as condições de segurança antes de autorizar o início do serviço.</p></div></div>
         <div class="stats-grid pending-stats">
-          <article class="stat-card"><span class="stat-icon blue">◇</span><span class="stat-label">Aguardando liberação</span><strong id="pendingTotal">0</strong><small>Permissões para analisar</small></article>
-          <article class="stat-card"><span class="stat-icon amber">!</span><span class="stat-label">Com não conformidades</span><strong id="pendingIssues">0</strong><small>Exigem atenção na análise</small></article>
-          <article class="stat-card"><span class="stat-icon green">♙</span><span class="stat-label">Trabalhadores envolvidos</span><strong id="pendingWorkers">0</strong><small>Nas permissões pendentes</small></article>
+          <button type="button" class="stat-card stat-card-button" data-metric-filter="pending:all" aria-label="Mostrar todas as PTs aguardando liberação"><span class="stat-icon blue">◇</span><span class="stat-label">Aguardando liberação</span><strong id="pendingTotal">0</strong><small>Ver todas para analisar <span class="stat-card-arrow">→</span></small></button>
+          <button type="button" class="stat-card stat-card-button" data-metric-filter="pending:issues" aria-label="Mostrar PTs com não conformidades"><span class="stat-icon amber">!</span><span class="stat-label">Com não conformidades</span><strong id="pendingIssues">0</strong><small>Ver itens que exigem atenção <span class="stat-card-arrow">→</span></small></button>
+          <button type="button" class="stat-card stat-card-button" data-metric-filter="pending:workers" aria-label="Mostrar PTs com trabalhadores envolvidos"><span class="stat-icon green">♙</span><span class="stat-label">Trabalhadores envolvidos</span><strong id="pendingWorkers">0</strong><small>Ver equipes aguardando <span class="stat-card-arrow">→</span></small></button>
         </div>
         <div class="history-toolbar pending-toolbar"><input id="pendingSearch" type="search" placeholder="Buscar por local, atividade ou responsável..." aria-label="Buscar PTs aguardando liberação"><span id="pendingCount">0 permissões</span></div>
         <div id="pendingList" class="record-list"><div class="empty-state">Nenhuma PT aguardando liberação.</div></div>
@@ -202,7 +202,7 @@
       window.setInterval(atualizarDataHora, 1000);
     })();
   </script>
-  <script src="app.js?v=tati-safe-v33"></script>
+  <script src="app.js?v=tati-safe-v34"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
       window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
