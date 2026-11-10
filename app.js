@@ -115,7 +115,8 @@
   };
   function checklistItems() {
     const selected=$$('input[name="equipamentos"]:checked').map(el=>el.value);
-    const work=$('select[name="tipoTrabalho"]')?.value||'';\n    return [...checklistBase,...(checklistByWork[work]||[]),...selected.flatMap(name=>checklistByEquipment[name]||[])];
+    const work=$('select[name="tipoTrabalho"]')?.value||'';
+    return [...checklistBase,...(checklistByWork[work]||[]),...selected.flatMap(name=>checklistByEquipment[name]||[])];
   }
   function renderChecklist() {
     const host=$('#safetyChecklist'); if(!host)return;
