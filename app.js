@@ -41,7 +41,7 @@
       <div class="signature-wrap"><label>Assinatura do trabalhador</label><canvas class="signature-pad" aria-label="Campo para assinatura digital"></canvas><div class="signature-tools"><button type="button" class="clear-signature">Limpar assinatura</button></div></div>`;
     $('#workersList').appendChild(wrapper);
     setupSignature($('.signature-pad',wrapper));
-    const epiHost=document.createElement('div');epiHost.className='worker-epi-section';epiHost.innerHTML='<h3>Conferência individual dos EPIs</h3><p>Confirme a condição de cada EPI para este trabalhador.</p><div class="worker-epi-list"></div>';wrapper.insertBefore(epiHost,$('.signature-wrap',wrapper));renderWorkersEpis();
+    const epiHost=document.createElement('section');epiHost.className='worker-epi-section';epiHost.innerHTML='<button type="button" class="worker-epi-toggle" aria-expanded="false"><span><strong>Conferência individual dos EPIs</strong><small>Verificar os equipamentos deste trabalhador</small></span><span class="worker-epi-chevron" aria-hidden="true">⌄</span></button><div class="worker-epi-content" hidden><div class="worker-epi-list"></div></div>';wrapper.insertBefore(epiHost,$('.signature-wrap',wrapper));$('.worker-epi-toggle',epiHost).addEventListener('click',()=>{const toggle=$('.worker-epi-toggle',epiHost);const content=$('.worker-epi-content',epiHost);const expanded=toggle.getAttribute('aria-expanded')==='true';toggle.setAttribute('aria-expanded',String(!expanded));content.hidden=expanded;});renderWorkersEpis();
     $('.remove-worker',wrapper).addEventListener('click',()=>wrapper.remove());
     $('.clear-signature',wrapper).addEventListener('click',()=>{const c=$('.signature-pad',wrapper),ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);});
   }
