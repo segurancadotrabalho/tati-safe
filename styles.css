@@ -324,3 +324,28 @@ body,.main-content{background:var(--canvas);color:var(--ink)}
 .metric-clear{border:0;background:transparent;color:#7047eb;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:2px 4px}
 
 .stat-card-button{position:relative;overflow:hidden}.stat-card-button:active{transform:scale(.985)}.stat-card-button.metric-selected{border-color:#7047eb;box-shadow:0 0 0 2px rgba(112,71,235,.14),0 8px 22px rgba(48,35,82,.08);background:linear-gradient(145deg,#fff 0%,#faf8ff 100%)}.stat-card-button.metric-selected:before{content:'FILTRO ATIVO';position:absolute;right:12px;top:10px;font-size:8px;letter-spacing:.06em;font-weight:800;color:#7047eb}.stat-card-button.metric-selected .stat-card-arrow{transform:translateX(4px)}
+
+
+/* Histórico de PTs */
+.history-heading{align-items:center;margin-top:2px}
+.history-heading>div p{margin:6px 0 0;color:var(--muted);font-size:11px;line-height:1.6}
+.history-heading .btn{white-space:nowrap}
+.history-stats{margin:18px 0}
+.history-stats .stat-card{min-height:102px}
+.running-actions{gap:7px}
+.running-close{border:1px solid #f2d4c8;background:#fff3ef;color:#c45a36;border-radius:8px;padding:10px 13px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap}
+.running-close:hover{background:#ffe8df}
+@media(max-width:700px){
+ .history-heading{align-items:stretch;flex-direction:column}
+ .history-heading .btn{width:100%}
+ .history-stats{grid-template-columns:1fr 1fr}
+ .history-stats .stat-card{min-height:86px}
+ .running-actions{width:100%;align-items:stretch!important}
+ .running-actions button{width:100%}
+}
+@media print{
+ .sidebar,.topbar,.history-heading .btn,.history-stats,.history-toolbar,.record-actions{display:none!important}
+ .main-content{margin:0!important;padding:0!important;background:#fff!important}
+ #page-historico{display:block!important}
+ .record-item{break-inside:avoid;box-shadow:none!important;border:1px solid #ddd!important}
+}
