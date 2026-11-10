@@ -19,6 +19,7 @@
     $('#sidebar').classList.remove('open');
     if(page==='historico') renderHistory();
     if(page==='em-andamento') renderRunning();
+    if(page==='aguardando') renderPending();
     if(page==='inicio') renderDashboard();
     window.scrollTo({top:0,behavior:'smooth'});
   }
@@ -511,10 +512,10 @@
       assinatura:$('.signature-pad',card).hasSignature?$('.signature-pad',card).toDataURL('image/png'):null
     }));
     const data=Object.fromEntries(new FormData(form).entries());
-    const record={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),criadoEm:new Date().toISOString(),status:'Em andamento',...data,equipamentos:$$('input[name="equipamentos"]:checked',form).map(el=>el.value),episAtividade:activityEpis,checklist,trabalhadores:people.map((person,index)=>({...person,episConferidos:activityEpis.map((epi,i)=>({epi,status:$('input[name="worker_epi_'+epi.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_')+'"]:checked',workerCards[index])?.value||'pendente'}))}))};
+    const record={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),criadoEm:new Date().toISOString(),status:'Aguardando liberação',...data,equipamentos:$$('input[name="equipamentos"]:checked',form).map(el=>el.value),episAtividade:activityEpis,checklist,trabalhadores:people.map((person,index)=>({...person,episConferidos:activityEpis.map((epi,i)=>({epi,status:$('input[name="worker_epi_'+epi.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_')+'"]:checked',workerCards[index])?.value||'pendente'}))}))};
     const records=readRecords();records.unshift(record);saveRecords(records);
     form.reset();$('#workersList').innerHTML='';workers=0;addWorker();
-    toast('Permissão salva neste dispositivo.');navigate('historico');
+    toast('PT cadastrada e enviada para aguardando liberação.');navigate('aguardando');
   });
 
   function recordCard(record) {
@@ -524,7 +525,7 @@
     const term=($('#historySearch')?.value||'').toLocaleLowerCase('pt-BR');
     const records=readRecords().filter(r=>{
       const matchesText=[r.local,r.servico,r.responsavelExecucao,r.tipoTrabalho].join(' ').toLocaleLowerCase('pt-BR').includes(term);
-      const matchesStatus=historyStatusFilter==='todos' || (historyStatusFilter==='andamento' ? r.status==='Em andamento' : r.status!=='Em andamento');
+      const matchesStatus=historyStatusFilter==='todos' || (historyStatusFilter==='andamento' ? r.status==='Em andamento' : historyStatusFilter==='encerradas' ? r.status==='Encerrada' : r.status==='Aguardando liberação');
       return matchesText && matchesStatus;
     });
     const filterLabel=historyStatusFilter==='andamento'?' em andamento':historyStatusFilter==='encerradas'?' encerrada(s)':'';
@@ -534,8 +535,35 @@
   function renderDashboard() {
     const records=readRecords();
     const active=records.filter(r=>r.status==='Em andamento');
-    $('#totalPts').textContent=records.length;$('#activePts').textContent=active.length;$('#closedPts').textContent=records.length-active.length;
+    $('#totalPts').textContent=records.length;$('#activePts').textContent=active.length;$('#closedPts').textContent=records.filter(r=>r.status==='Encerrada').length;
     $('#recentList').innerHTML=records.length?records.slice(0,4).map(recordCard).join(''):'<div class="empty-state">Nenhuma PT cadastrada. Comece criando uma nova permissão.</div>';
+  }
+  function renderPending() {
+    const pending=readRecords().filter(r=>r.status==='Aguardando liberação');
+    const term=($('#pendingSearch')?.value||'').trim().toLocaleLowerCase('pt-BR');
+    const workers=pending.reduce((total,r)=>total+(r.trabalhadores||[]).length,0);
+    const issues=pending.filter(r=>(r.checklist||[]).some(item=>item.status==='nao_conforme')).length;
+    $('#pendingTotal').textContent=pending.length;
+    $('#pendingIssues').textContent=issues;
+    $('#pendingWorkers').textContent=workers;
+    const filtered=pending.filter(r=>[r.local,r.servico,r.tipoTrabalho,r.responsavelExecucao,r.responsavelArea,r.seguranca,...(r.trabalhadores||[]).map(p=>p.nome)].join(' ').toLocaleLowerCase('pt-BR').includes(term));
+    $('#pendingCount').textContent=filtered.length+' de '+pending.length+' permissão(ões)';
+    $('#pendingList').innerHTML=filtered.length?filtered.map(r=>{
+      const nonconformities=(r.checklist||[]).filter(item=>item.status==='nao_conforme');
+      const unanswered=(r.checklist||[]).filter(item=>!item.status);
+      return `<article class="record-item pending-record">
+        <div class="pending-record-main">
+          <div class="pending-record-top"><span class="pending-status"><i></i> Aguardando liberação</span>${nonconformities.length?'<span class="pending-alert">'+nonconformities.length+' não conformidade(s)</span>':''}</div>
+          <strong>${escapeHtml(r.local||'Local não informado')}</strong>
+          <small>${escapeHtml(r.tipoTrabalho||'Atividade não informada')} · ${escapeHtml(r.responsavelExecucao||'Responsável não informado')}</small>
+          <div class="pending-details"><span><b>Solicitada em</b>${formatDate(r.criadoEm)}</span><span><b>Início previsto</b>${formatDate(r.dataInicio)}</span><span><b>Equipe</b>${(r.trabalhadores||[]).length} trabalhador(es)</span></div>
+          <small class="pending-service">${escapeHtml(r.servico||'Descrição do serviço não informada')}</small>
+          ${nonconformities.length?'<div class="pending-warning">Atenção: há itens do checklist marcados como não conformes. Avalie as justificativas e as medidas corretivas antes de liberar.</div>':''}
+          ${unanswered.length?'<div class="pending-warning">Há '+unanswered.length+' item(ns) do checklist sem resposta. Revise os dados antes da liberação.</div>':''}
+        </div>
+        <div class="pending-actions"><button class="pending-view" type="button" data-view="${escapeHtml(r.id)}">Analisar PT</button><button class="pending-release" type="button" data-release="${escapeHtml(r.id)}">Liberar PT <span>→</span></button></div>
+      </article>`;
+    }).join(''):'<div class="empty-state">'+(pending.length?'Nenhuma PT corresponde à sua busca.':'Nenhuma PT aguardando liberação. As novas permissões cadastradas aparecerão aqui para análise.')+'</div>';
   }
   function renderRunning() {
     const active=readRecords().filter(r=>r.status==='Em andamento');
@@ -564,9 +592,24 @@
   }
   $('#historySearch').addEventListener('input',renderHistory);
   $('#runningSearch').addEventListener('input',renderRunning);
+  $('#pendingSearch').addEventListener('input',renderPending);
   document.addEventListener('click',event=>{
     const view=event.target.closest('[data-view]');
     if(view){const record=readRecords().find(r=>r.id===view.dataset.view);if(record)showDetails(record);}
+    const release=event.target.closest('[data-release]');
+    if(release){
+      const records=readRecords();
+      const record=records.find(r=>r.id===release.dataset.release);
+      if(!record || record.status!=='Aguardando liberação')return;
+      const issues=(record.checklist||[]).filter(item=>item.status==='nao_conforme');
+      const unanswered=(record.checklist||[]).filter(item=>!item.status);
+      const warning=issues.length?'\\n\\nAtenção: existem '+issues.length+' não conformidade(s) no checklist. Confirme que as medidas corretivas foram avaliadas e controladas.':'';
+      const pending=unanswered.length?'\\n\\nExistem '+unanswered.length+' item(ns) sem resposta no checklist.':'';
+      if(!confirm('Confirma a liberação desta Permissão de Trabalho para início da atividade?'+warning+pending+'\\n\\nA PT será movida para “Em andamento”.'))return;
+      record.status='Em andamento';record.liberadoEm=new Date().toISOString();
+      saveRecords(records);renderPending();renderRunning();renderDashboard();
+      toast('PT liberada e movida para Em andamento.');
+    }
     const del=event.target.closest('[data-delete]');
     if(del){if(!confirm('Deseja realmente excluir esta Permissão de Trabalho?'))return;saveRecords(readRecords().filter(r=>r.id!==del.dataset.delete));renderHistory();renderDashboard();toast('Registro excluído.');}
   });
