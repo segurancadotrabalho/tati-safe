@@ -221,9 +221,14 @@
   }
   function renderActivityEpis(){
     const host=$('#activityEpiList');if(!host)return;
-    const previous=new Set($('#activityEpiList input:checked').map(el=>el.value));
+    const previous=new Set($$('input[name="episAtividade"]:checked',host).map(el=>el.value));
+    const seen=new Set(JSON.parse(host.dataset.seen||'[]'));
     const items=selectedActivityEpis();
-    host.innerHTML=items.map(item=>'<label class="activity-epi-option"><input type="checkbox" name="episAtividade" value="'+escapeHtml(item)+'" '+(previous.has(item)||!previous.size?'checked':'')+'><span>'+escapeHtml(item)+'</span></label>').join('');
+    host.innerHTML=items.map(item=>{
+      const checked=previous.has(item)||!seen.has(item);
+      return '<label class="activity-epi-option"><input type="checkbox" name="episAtividade" value="'+escapeHtml(item)+'" '+(checked?'checked':'')+'><span>'+escapeHtml(item)+'</span></label>';
+    }).join('');
+    host.dataset.seen=JSON.stringify([...seen,...items]);
     renderWorkersEpis();
   }
   function renderWorkersEpis(){
@@ -231,7 +236,7 @@
     $('.worker-card').forEach(card=>{
       const host=$('.worker-epi-list',card);if(!host)return;
       const previous={};$('input[type="radio"]',host).forEach(el=>{if(el.checked)previous[el.name]=el.value;});
-      host.innerHTML=items.map((item,i)=>{const key='worker_epi_'+i;const value=previous[key]||'';return '<div class="worker-epi-row"><strong>'+escapeHtml(item)+'</strong><div class="worker-epi-status"><label><input type="radio" name="'+key+'" value="adequado" '+(value==='adequado'?'checked':'')+' required> Conferido / adequado</label><label><input type="radio" name="'+key+'" value="pendente" '+(value==='pendente'?'checked':'')+' required> Ausente / inadequado</label></div></div>';}).join('');
+      host.innerHTML=items.map((item,i)=>{const key='worker_epi_'+item.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_');const value=previous[key]||'';return '<div class="worker-epi-row"><strong>'+escapeHtml(item)+'</strong><div class="worker-epi-status"><label><input type="radio" name="'+key+'" value="adequado" '+(value==='adequado'?'checked':'')+' required> Conferido / adequado</label><label><input type="radio" name="'+key+'" value="pendente" '+(value==='pendente'?'checked':'')+' required> Ausente / inadequado</label></div></div>';}).join('');
     });
   }
   $('input[name="equipamentos"]').forEach(el=>el.addEventListener('change',()=>{renderChecklist();renderActivityEpis();}));
@@ -252,7 +257,7 @@
     const checklist=collectChecklist();
     const activityEpis=$('input[name="episAtividade"]:checked').map(el=>el.value);
     if(!activityEpis.length){toast('Defina os EPIs necessários para a atividade.');$('#activityEpiList')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
-    const epiPending=workerCards.some(card=>activityEpis.some((epi,i)=>{const selected=$('input[name="worker_epi_'+i+'"]:checked',card);return !selected||selected.value!=='adequado';}));
+    const epiPending=workerCards.some(card=>activityEpis.some((epi,i)=>{const key='worker_epi_'+epi.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_');const selected=$('input[name="'+key+'"]:checked',card);return !selected||selected.value!=='adequado';}));
     if(epiPending){toast('Todos os EPIs devem estar conferidos e adequados para cada trabalhador.');$('.worker-epi-section')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
     const unanswered=checklist.filter(item=>!item.status);
     const unjustified=checklist.filter(item=>item.status==='nao_conforme'&&!item.justificativa);
@@ -265,7 +270,7 @@
       assinatura:$('.signature-pad',card).hasSignature?$('.signature-pad',card).toDataURL('image/png'):null
     }));
     const data=Object.fromEntries(new FormData(form).entries());
-    const record={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),criadoEm:new Date().toISOString(),status:'Em andamento',...data,equipamentos:$('input[name="equipamentos"]:checked',form).map(el=>el.value),episAtividade:activityEpis,checklist,trabalhadores:people.map((person,index)=>({...person,episConferidos:activityEpis.map((epi,i)=>({epi,status:$('input[name="worker_epi_'+i+'"]:checked',workerCards[index])?.value||'pendente'}))}))};
+    const record={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),criadoEm:new Date().toISOString(),status:'Em andamento',...data,equipamentos:$('input[name="equipamentos"]:checked',form).map(el=>el.value),episAtividade:activityEpis,checklist,trabalhadores:people.map((person,index)=>({...person,episConferidos:activityEpis.map((epi,i)=>({epi,status:$('input[name="worker_epi_'+epi.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_')+'"]:checked',workerCards[index])?.value||'pendente'}))}))};
     const records=readRecords();records.unshift(record);saveRecords(records);
     form.reset();$('#workersList').innerHTML='';workers=0;addWorker();
     toast('Permissão salva neste dispositivo.');navigate('historico');
