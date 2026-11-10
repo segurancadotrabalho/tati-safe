@@ -18,6 +18,7 @@
     $('#pageHeading').textContent=labels[page] || 'TATI SAFE';
     $('#sidebar').classList.remove('open');
     if(page==='historico') renderHistory();
+    if(page==='em-andamento') renderRunning();
     if(page==='inicio') renderDashboard();
     window.scrollTo({top:0,behavior:'smooth'});
   }
@@ -536,7 +537,33 @@
     $('#totalPts').textContent=records.length;$('#activePts').textContent=active.length;$('#closedPts').textContent=records.length-active.length;
     $('#recentList').innerHTML=records.length?records.slice(0,4).map(recordCard).join(''):'<div class="empty-state">Nenhuma PT cadastrada. Comece criando uma nova permissão.</div>';
   }
+  function renderRunning() {
+    const active=readRecords().filter(r=>r.status==='Em andamento');
+    const term=($('#runningSearch')?.value||'').trim().toLocaleLowerCase('pt-BR');
+    const now=new Date();
+    const overdue=active.filter(r=>r.dataFim && new Date(r.dataFim)<now);
+    const workers=active.reduce((total,r)=>total+(r.trabalhadores||[]).length,0);
+    $('#runningTotal').textContent=active.length;
+    $('#runningOverdue').textContent=overdue.length;
+    $('#runningWorkers').textContent=workers;
+    const filtered=active.filter(r=>[r.local,r.servico,r.tipoTrabalho,r.responsavelExecucao,r.responsavelArea,r.seguranca,...(r.trabalhadores||[]).map(p=>p.nome)].join(' ').toLocaleLowerCase('pt-BR').includes(term));
+    $('#runningCount').textContent=filtered.length+' de '+active.length+' permissão(ões)';
+    $('#runningList').innerHTML=filtered.length?filtered.map(r=>{
+      const isOverdue=r.dataFim && new Date(r.dataFim)<now;
+      const start=formatDate(r.dataInicio);
+      const end=formatDate(r.dataFim);
+      return `<article class="record-item running-record">
+        <div class="running-record-main"><div class="running-record-top"><span class="running-status"><i></i> Em andamento</span>${isOverdue?'<span class="running-alert">Prazo previsto vencido</span>':''}</div>
+          <strong>${escapeHtml(r.local||'Local não informado')}</strong>
+          <small>${escapeHtml(r.tipoTrabalho||'Atividade não informada')} · ${escapeHtml(r.responsavelExecucao||'Responsável não informado')}</small>
+          <div class="running-details"><span><b>Início</b>${start}</span><span><b>Término previsto</b>${end}</span><span><b>Equipe</b>${(r.trabalhadores||[]).length} trabalhador(es)</span></div>
+          <small class="running-service">${escapeHtml(r.servico||'Descrição do serviço não informada')}</small>
+        </div><div class="record-meta"><button class="running-view" type="button" data-view="${escapeHtml(r.id)}">Ver detalhes <span>→</span></button></div>
+      </article>`;
+    }).join(''):'<div class="empty-state">'+(active.length?'Nenhuma PT corresponde à sua busca.':'Nenhuma PT em andamento no momento. As permissões salvas como em andamento aparecerão aqui.')+'</div>';
+  }
   $('#historySearch').addEventListener('input',renderHistory);
+  $('#runningSearch').addEventListener('input',renderRunning);
   document.addEventListener('click',event=>{
     const view=event.target.closest('[data-view]');
     if(view){const record=readRecords().find(r=>r.id===view.dataset.view);if(record)showDetails(record);}
