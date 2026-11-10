@@ -90,7 +90,7 @@
     ]
   };
   function checklistItems() {
-    const selected=$('input[name="equipamentos"]:checked').map(el=>el.value);
+    const selected=$$('input[name="equipamentos"]:checked').map(el=>el.value);
     return [...checklistBase,...selected.flatMap(name=>checklistByEquipment[name]||[])];
   }
   function renderChecklist() {
@@ -109,7 +109,7 @@
     updateChecklistSummary();
   }
   function collectChecklist(validate=true) {
-    return $('#safetyChecklist [data-check-item]').map(card=>{
+    return $$('#safetyChecklist [data-check-item]').map(card=>{
       const key=card.dataset.checkItem;
       const selected=$('input[type="radio"]:checked',card);
       const question=$('.check-question strong',card)?.textContent||'';
@@ -132,7 +132,7 @@
     }
   });
   $('#safetyChecklist').addEventListener('input',event=>{if(event.target.matches('[data-justification]'))updateChecklistSummary();});
-  $('input[name="equipamentos"],select[name="tipoTrabalho"]').forEach(el=>el.addEventListener('change',renderChecklist));
+  $$('input[name="equipamentos"],select[name="tipoTrabalho"]').forEach(el=>el.addEventListener('change',renderChecklist));
   renderChecklist();
 
   $('#addWorker').addEventListener('click',addWorker);
