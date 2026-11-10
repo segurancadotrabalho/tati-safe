@@ -25,20 +25,6 @@
     const nav=event.target.closest('[data-page],[data-go]');
     if(nav){navigate(nav.dataset.page || nav.dataset.go,nav.dataset.filter || 'todos');}
   });
-  const shell=$('.app-shell');
-  const sidebarToggle=$('#sidebarToggle');
-  $('.nav-link').forEach(link=>link.dataset.label=link.textContent.trim());
-  if(window.matchMedia('(min-width: 701px)').matches && localStorage.getItem('tatiSidebarCollapsed')==='true'){
-    shell.classList.add('sidebar-collapsed');
-    sidebarToggle?.setAttribute('aria-label','Expandir menu lateral');
-    sidebarToggle?.setAttribute('title','Expandir menu lateral');
-  }
-  sidebarToggle?.addEventListener('click',()=>{
-    const collapsed=shell.classList.toggle('sidebar-collapsed');
-    localStorage.setItem('tatiSidebarCollapsed',String(collapsed));
-    sidebarToggle.setAttribute('aria-label',collapsed?'Expandir menu lateral':'Minimizar menu lateral');
-    sidebarToggle.setAttribute('title',collapsed?'Expandir menu lateral':'Minimizar menu lateral');
-  });
   $('#menuButton').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
 
   function addWorker() {
