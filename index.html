@@ -149,10 +149,21 @@
         <div id="pendingList" class="record-list"><div class="empty-state">Nenhuma PT aguardando liberação.</div></div>
       </section>
 
-      <section class="page module-placeholder" id="page-analises">
-
-        <div class="module-empty"><span class="module-empty-icon">◇</span><h2>Área preparada</h2><p>Este módulo já faz parte da estrutura de navegação. Vamos configurar seus recursos em uma próxima etapa, mantendo o mesmo padrão visual em computador, tablet e celular.</p></div>
-      </section>
+      <section class="page" id="page-analises">
+<div class="section-heading apr-heading"><div><span class="eyebrow">GESTÃO DE RISCOS OCUPACIONAIS</span><h2>Análises Preliminares de Risco</h2><p>Identifique perigos, avalie riscos e registre medidas preventivas antes do início das atividades.</p></div><button type="button" class="btn btn-primary" id="newAprButton">＋ Nova APR</button></div>
+<div class="stats-grid apr-stats"><div class="stat-card"><span class="stat-label">Total de APRs</span><strong id="aprTotal">0</strong><small>Registros neste dispositivo</small></div><div class="stat-card"><span class="stat-label">Em elaboração</span><strong id="aprDraft">0</strong><small>Aguardando conclusão</small></div><div class="stat-card"><span class="stat-label">Concluídas</span><strong id="aprDone">0</strong><small>Análises finalizadas</small></div></div>
+<section id="aprEditor" class="form-panel apr-editor" hidden><div class="panel-title"><span class="step-number">APR</span><div><h2 id="aprEditorTitle">Nova Análise Preliminar de Risco</h2><p>Registre cada etapa, perigo, risco e controle preventivo.</p></div></div>
+<form id="aprForm"><input type="hidden" name="id"><div class="form-grid">
+<label class="field span-2">Atividade / serviço<input name="atividade" required placeholder="Ex.: manutenção de equipamento industrial"></label>
+<label class="field">Local de execução<input name="local" required placeholder="Área / setor / equipamento"></label><label class="field">Data da análise<input name="data" type="date" required></label>
+<label class="field">Responsável pela análise<input name="responsavel" required placeholder="Nome completo"></label><label class="field">PT relacionada (opcional)<select name="ptId" id="aprPtSelect"><option value="">Sem vínculo com uma PT</option></select></label>
+<label class="field span-2">Equipe / trabalhadores envolvidos<textarea name="equipe" rows="2" placeholder="Informe os trabalhadores ou equipe responsável"></textarea></label>
+<label class="field span-2">Descrição e sequência da atividade<textarea name="descricao" rows="3" required placeholder="Descreva como o serviço será executado, em ordem."></textarea></label></div>
+<div class="apr-risk-heading"><div><h3>Identificação de perigos e avaliação de riscos</h3><p>Inclua uma linha para cada etapa ou situação de risco identificada.</p></div><button type="button" class="btn btn-secondary" id="addAprRisk">＋ Adicionar etapa</button></div><div id="aprRiskList" class="apr-risk-list"></div>
+<div class="form-grid apr-bottom-fields"><label class="field span-2">EPIs / EPCs necessários<textarea name="protecao" rows="2" placeholder="Proteções individuais e coletivas exigidas"></textarea></label><label class="field span-2">Plano de emergência / resposta<textarea name="emergencia" rows="2" placeholder="Resgate, primeiros socorros e comunicação"></textarea></label><label class="field span-2">Observações gerais<textarea name="observacoes" rows="2"></textarea></label><label class="field">Situação da APR<select name="status"><option>Em elaboração</option><option>Concluída</option></select></label></div>
+<div class="form-actions"><button type="button" class="btn btn-secondary" id="cancelApr">Cancelar</button><button type="submit" class="btn btn-primary">Salvar APR</button></div></form></section>
+<div class="apr-list-toolbar"><input id="aprSearch" type="search" placeholder="Buscar por atividade, local ou responsável..." aria-label="Buscar APR"><select id="aprStatusFilter" aria-label="Filtrar situação"><option value="todas">Todas as situações</option><option>Em elaboração</option><option>Concluída</option></select><span id="aprCount">0 APRs</span></div>
+<div id="aprList" class="record-list"><div class="empty-state">Nenhuma APR cadastrada. Clique em “Nova APR” para começar.</div></div></section>
 
       <section class="page module-placeholder" id="page-checklists">
 
@@ -208,7 +219,7 @@
       window.setInterval(atualizarDataHora, 1000);
     })();
   </script>
-  <script src="app.js?v=tati-safe-v35"></script>
+  <script src="app.js?v=tati-safe-v36"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
       window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
