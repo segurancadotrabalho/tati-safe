@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102b46">
+  <meta name="description" content="TATI SAFE — Segurança e gestão inteligente de Permissões de Trabalho.">
+  <title>TATI SAFE | Gestão de PT</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#inicio" aria-label="TATI SAFE início">
+        <span class="brand-mark">TS</span>
+        <span><strong>TATI SAFE</strong><small>SEGURANÇA E GESTÃO INTELIGENTE</small></span>
+      </a>
+      <nav class="main-nav" aria-label="Navegação principal">
+        <button class="nav-link active" data-page="inicio"><span>▦</span> Visão geral</button>
+        <button class="nav-link" data-page="nova-pt"><span>＋</span> Nova Permissão de Trabalho</button>
+        <button class="nav-link" data-page="historico"><span>▤</span> Histórico de PTs</button>
+      </nav>
+      <div class="sidebar-footer"><span class="status-dot"></span> Dados salvos neste dispositivo</div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="mobile-menu" id="menuButton" aria-label="Abrir menu">☰</button>
+        <div><span class="eyebrow">SEGURANÇA DO TRABALHO</span><strong id="pageHeading">Visão geral</strong></div>
+        <span class="topbar-tag">TATI SAFE <span class="live-dot"></span></span>
+      </header>
+
+      <section class="page active" id="page-inicio">
+        <div class="welcome-row">
+          <div><span class="eyebrow">PAINEL DE CONTROLE</span><h1>Gestão de Permissão de Trabalho</h1><p>Organize, acompanhe e registre atividades com segurança.</p></div>
+          <button class="btn btn-primary" data-go="nova-pt">＋ Nova PT</button>
+        </div>
+        <div class="stats-grid">
+          <article class="stat-card"><span class="stat-icon blue">▤</span><span class="stat-label">Total de PTs</span><strong id="totalPts">0</strong><small>Registros neste dispositivo</small></article>
+          <article class="stat-card"><span class="stat-icon green">✓</span><span class="stat-label">Em andamento</span><strong id="activePts">0</strong><small>PTs dentro do período</small></article>
+          <article class="stat-card"><span class="stat-icon amber">◷</span><span class="stat-label">Encerradas</span><strong id="closedPts">0</strong><small>Atividades finalizadas</small></article>
+        </div>
+        <div class="section-heading"><div><span class="eyebrow">ACESSO RÁPIDO</span><h2>Comece por aqui</h2></div></div>
+        <div class="quick-grid">
+          <button class="quick-card" data-go="nova-pt"><span class="quick-icon">＋</span><strong>Emitir nova PT</strong><small>Preencha os dados e as análises de segurança.</small><span class="quick-arrow">→</span></button>
+          <button class="quick-card" data-go="historico"><span class="quick-icon">▤</span><strong>Consultar histórico</strong><small>Visualize os registros salvos neste dispositivo.</small><span class="quick-arrow">→</span></button>
+        </div>
+        <div class="section-heading"><div><span class="eyebrow">ATIVIDADE RECENTE</span><h2>Últimas permissões</h2></div><button class="text-button" data-go="historico">Ver histórico →</button></div>
+        <div id="recentList" class="record-list"><div class="empty-state">Nenhuma PT cadastrada. Comece criando uma nova permissão.</div></div>
+      </section>
+
+      <section class="page" id="page-nova-pt">
+        <div class="page-intro"><span class="eyebrow">NOVO REGISTRO</span><h1>Nova Permissão de Trabalho</h1><p>Informe os dados da atividade e selecione os recursos de acesso que serão utilizados.</p></div>
+        <form id="ptForm">
+          <section class="form-panel">
+            <div class="panel-title"><span class="step-number">01</span><div><h2>Tipo de acesso / equipamento</h2><p>Selecione uma opção para abrir os itens de verificação correspondentes.</p></div></div>
+            <div class="choice-grid">
+              <label class="choice-card"><input type="checkbox" name="equipamentos" value="PTA"><span class="choice-symbol">▥</span><strong>PTA</strong><small>Plataforma de Trabalho em Altura</small></label>
+              <label class="choice-card"><input type="checkbox" name="equipamentos" value="Escadas"><span class="choice-symbol">⇧</span><strong>Escadas</strong><small>Uso de escadas portáteis</small></label>
+              <label class="choice-card"><input type="checkbox" name="equipamentos" value="Andaimes"><span class="choice-symbol">▦</span><strong>Andaimes</strong><small>Montagem e utilização</small></label>
+            </div>
+            <p class="hint">Você pode selecionar mais de uma opção. Os checklists específicos serão disponibilizados na próxima etapa do projeto.</p>
+          </section>
+
+          <section class="form-panel">
+            <div class="panel-title"><span class="step-number">02</span><div><h2>Dados da atividade</h2><p>Identificação e período de execução do serviço.</p></div></div>
+            <div class="form-grid">
+              <label class="field span-2">Local do serviço<input name="local" required placeholder="Ex.: Galpão 02 — área de produção"></label>
+              <label class="field">Data de início<input name="dataInicio" type="datetime-local" required></label>
+              <label class="field">Data de término prevista<input name="dataFim" type="datetime-local" required></label>
+              <label class="field span-2">Tipo de trabalho<select name="tipoTrabalho" required><option value="">Selecione o tipo de trabalho</option><option>Trabalho em altura</option><option>Trabalho a quente</option><option>Espaço confinado</option><option>Elétrica</option><option>Manutenção industrial</option><option>Telhados</option><option>Movimentação de cargas</option><option>Trabalho com empilhadeiras</option><option>Escavação</option><option>Outros</option></select></label>
+              <label class="field span-2">Descrição do serviço<textarea name="servico" rows="3" required placeholder="Descreva detalhadamente o serviço que será realizado."></textarea></label>
+            </div>
+          </section>
+
+          <section class="form-panel">
+            <div class="panel-title"><span class="step-number">03</span><div><h2>Responsáveis</h2><p>Identifique as pessoas responsáveis pela atividade e liberação.</p></div></div>
+            <div class="form-grid">
+              <label class="field">Responsável pela execução<input name="responsavelExecucao" required placeholder="Nome completo"></label>
+              <label class="field">Responsável pela área<input name="responsavelArea" required placeholder="Nome completo"></label>
+              <label class="field span-2">Responsável pela Segurança do Trabalho<input name="seguranca" required placeholder="Nome completo"></label>
+            </div>
+          </section>
+
+          <section class="form-panel">
+            <div class="panel-title"><span class="step-number">04</span><div><h2>Trabalhadores envolvidos</h2><p>Cadastre os trabalhadores, pressão arterial e assinatura.</p></div></div>
+            <div id="workersList"></div>
+            <button type="button" class="btn btn-secondary" id="addWorker">＋ Adicionar trabalhador</button>
+          </section>
+
+          <section class="form-panel">
+            <div class="panel-title"><span class="step-number">05</span><div><h2>Observações gerais</h2><p>Registre informações adicionais relevantes para a liberação.</p></div></div>
+            <label class="field">Observações<textarea name="observacoes" rows="4" placeholder="Condições especiais, recomendações e observações..."></textarea></label>
+          </section>
+          <div class="form-actions"><button type="button" class="btn btn-secondary" data-go="inicio">Cancelar</button><button class="btn btn-primary" type="submit">Salvar Permissão de Trabalho</button></div>
+        </form>
+      </section>
+
+      <section class="page" id="page-historico">
+        <div class="page-intro"><span class="eyebrow">CONSULTA</span><h1>Histórico de Permissões</h1><p>Consulte as permissões registradas neste dispositivo.</p></div>
+        <div class="history-toolbar"><input id="historySearch" type="search" placeholder="Buscar por local, serviço ou responsável..."><span id="historyCount">0 registros</span></div>
+        <div id="historyList" class="record-list"><div class="empty-state">Nenhuma PT cadastrada.</div></div>
+      </section>
+
+      <footer class="app-footer">TATI SAFE <span>•</span> Segurança e Gestão Inteligente <span>•</span> Versão inicial 0.1</footer>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>
