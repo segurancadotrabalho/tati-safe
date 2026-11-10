@@ -8,7 +8,7 @@
   <title>TATI SAFE | Gestão de PT</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=tati-safe-v31">
+  <link rel="stylesheet" href="styles.css?v=tati-safe-v32">
 </head>
 <body>
   <div class="app-shell">
@@ -20,7 +20,7 @@
         <button class="nav-link active" data-page="inicio"><span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span> Painel inicial</button>
         <span class="nav-section-label">GESTÃO DE PT</span>
         <button class="nav-link" data-page="nova-pt"><span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6m-3 3h6"/></svg></span> Nova Permissão de Trabalho</button>
-        <button class="nav-link" data-page="em-andamento"><span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6M12 2v3"/></svg></span> PTs em andamento</button>
+        <button class="nav-link" data-page="em-andamento"><span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6M12 2v3"/></svg></span> Permissões em execução</button>
         <button class="nav-link" data-page="aguardando"><span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 2h14M5 22h14M7 2v4a5 5 0 0 0 5 5 5 5 0 0 0 5-5V2M7 22v-4a5 5 0 0 1 5-5 5 5 0 0 1 5 5v4"/></svg></span> Aguardando liberação</button>
         <button class="nav-link" data-page="historico"><span><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg></span> Histórico de PTs</button>
         <span class="nav-section-label">SEGURANÇA</span>
@@ -202,7 +202,7 @@
       window.setInterval(atualizarDataHora, 1000);
     })();
   </script>
-  <script src="app.js?v=tati-safe-v31"></script>
+  <script src="app.js?v=tati-safe-v32"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
       window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
