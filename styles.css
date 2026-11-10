@@ -141,3 +141,26 @@ body,.main-content{background:var(--canvas);color:var(--ink)}
 .topbar-clock span{font-size:10px;color:#777487;font-weight:600;letter-spacing:.2px}
 .topbar-clock strong{font:800 17px Manrope,sans-serif;letter-spacing:.5px;color:#7047eb;font-variant-numeric:tabular-nums}
 @media(max-width:700px){.brand{padding-bottom:20px}.topbar-clock{padding:5px 9px;min-width:95px}.topbar-clock strong{font-size:15px}.topbar-clock span{font-size:9px}}
+
+
+/* Checklist de segurança da Permissão de Trabalho */
+.checklist-legend{display:flex;flex-wrap:wrap;gap:10px 18px;margin:2px 0 17px;color:var(--muted);font-size:11px}
+.checklist-legend span{display:flex;align-items:center;gap:7px}
+.legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.legend-dot.ok{background:#16a078}.legend-dot.no{background:#e05260}.legend-dot.na{background:#9a9aaa}
+.check-item{padding:15px 0;border-top:1px solid var(--line)}
+.check-question{display:flex;align-items:flex-start;gap:11px;line-height:1.5;color:#30264b;font-size:13px}
+.check-number{display:grid;place-items:center;flex:0 0 27px;height:27px;border-radius:8px;background:#f0eaff;color:#7047eb;font-size:10px;font-weight:800}
+.check-options{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0 38px}
+.check-option{position:relative;cursor:pointer}
+.check-option input{position:absolute;opacity:0;pointer-events:none}
+.check-option span{display:block;padding:8px 13px;border:1px solid var(--line);border-radius:8px;background:#fff;color:#656477;font-size:11px;font-weight:700;transition:.15s}
+.check-option.ok input:checked+span{background:#e8f8f1;border-color:#79c9a5;color:#08794f}
+.check-option.no input:checked+span{background:#fff0f1;border-color:#ef9aa1;color:#b62d3a}
+.check-option.na input:checked+span{background:#f0f0f4;border-color:#b9b9c5;color:#5d5d6c}
+.check-option input:focus-visible+span{outline:3px solid rgba(112,71,235,.2)}
+.check-justification{display:block;margin:12px 0 0 38px;color:#b62d3a;font-size:11px;font-weight:700}
+.check-justification[hidden]{display:none}
+.check-justification textarea{display:block;width:100%;margin-top:6px;padding:10px;border:1px solid #efb5ba;border-radius:8px;font:inherit;color:var(--ink);resize:vertical}
+.checklist-summary{margin-top:14px;padding:12px 14px;border-radius:9px;background:#f4f0ff;color:#6041c7;font-size:11px;font-weight:700}
+@media(max-width:700px){.check-options{margin-left:0;gap:6px}.check-option span{padding:9px 10px}.check-justification{margin-left:0}.check-question{font-size:12px}}
