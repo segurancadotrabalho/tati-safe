@@ -14,7 +14,7 @@
     if(page==='historico') historyStatusFilter=filter;
     $$('.page').forEach(el=>el.classList.toggle('active',el.id===`page-${page}`));
     $$('.nav-link').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
-    const labels={'inicio':'Painel inicial','nova-pt':'Nova Permissão de Trabalho','em-andamento':'PTs em andamento','aguardando':'Aguardando liberação','historico':'Histórico de PTs','analises':'Análises e APR','checklists':'Checklists de segurança','trabalhadores':'Trabalhadores','relatorios':'Relatórios','notificacoes':'Notificações','configuracoes':'Configurações'};
+    const labels={'inicio':'Painel inicial','nova-pt':'Nova Permissão de Trabalho','em-andamento':'Permissões em execução','aguardando':'Aguardando liberação','historico':'Histórico de PTs','analises':'Análises e APR','checklists':'Checklists de segurança','trabalhadores':'Trabalhadores','relatorios':'Relatórios','notificacoes':'Notificações','configuracoes':'Configurações'};
     $('#pageHeading').textContent=labels[page] || 'TATI SAFE';
     $('#sidebar').classList.remove('open');
     if(page==='historico') renderHistory();
@@ -551,7 +551,7 @@
     $('#pendingList').innerHTML=filtered.length?filtered.map(r=>{
       const nonconformities=(r.checklist||[]).filter(item=>item.status==='nao_conforme');
       const unanswered=(r.checklist||[]).filter(item=>!item.status);
-      return `<article class="record-item pending-record">
+      return `<article class="record-item pending-record record-clickable" data-open-record="${escapeHtml(r.id)}" tabindex="0" role="button" aria-label="Abrir detalhes da permissão">
         <div class="pending-record-main">
           <div class="pending-record-top"><span class="pending-status"><i></i> Aguardando liberação</span>${nonconformities.length?'<span class="pending-alert">'+nonconformities.length+' não conformidade(s)</span>':''}</div>
           <strong>${escapeHtml(r.local||'Local não informado')}</strong>
@@ -580,7 +580,7 @@
       const isOverdue=r.dataFim && new Date(r.dataFim)<now;
       const start=formatDate(r.dataInicio);
       const end=formatDate(r.dataFim);
-      return `<article class="record-item running-record">
+      return `<article class="record-item running-record record-clickable" data-open-record="${escapeHtml(r.id)}" tabindex="0" role="button" aria-label="Abrir detalhes da permissão">
         <div class="running-record-main"><div class="running-record-top"><span class="running-status"><i></i> Em andamento</span>${isOverdue?'<span class="running-alert">Prazo previsto vencido</span>':''}</div>
           <strong>${escapeHtml(r.local||'Local não informado')}</strong>
           <small>${escapeHtml(r.tipoTrabalho||'Atividade não informada')} · ${escapeHtml(r.responsavelExecucao||'Responsável não informado')}</small>
@@ -611,7 +611,12 @@
       toast('PT liberada e movida para Em andamento.');
     }
     const del=event.target.closest('[data-delete]');
-    if(del){if(!confirm('Deseja realmente excluir esta Permissão de Trabalho?'))return;saveRecords(readRecords().filter(r=>r.id!==del.dataset.delete));renderHistory();renderDashboard();toast('Registro excluído.');}
+    if(del){if(!confirm('Deseja realmente excluir esta Permissão de Trabalho?'))return;saveRecords(readRecords().filter(r=>r.id!==del.dataset.delete));renderHistory();renderDashboard();toast('Registro excluído.');return;}
+    const card=event.target.closest('[data-open-record]');
+    if(card && !event.target.closest('button,a,input,select,textarea,label')){const record=readRecords().find(r=>r.id===card.dataset.openRecord);if(record)showDetails(record);}
+  });
+  document.addEventListener('keydown',event=>{
+    if((event.key==='Enter'||event.key===' ') && event.target.matches('[data-open-record]')){event.preventDefault();const record=readRecords().find(r=>r.id===event.target.dataset.openRecord);if(record)showDetails(record);}
   });
   function showDetails(r) {
     const people=(r.trabalhadores||[]).map(p=>`• ${escapeHtml(p.nome)} — PA: ${escapeHtml(p.pressaoSistolica||'—')}/${escapeHtml(p.pressaoDiastolica||'—')} mmHg`).join('\n');
