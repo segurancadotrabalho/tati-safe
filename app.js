@@ -46,62 +46,140 @@
     $('.clear-signature',wrapper).addEventListener('click',()=>$('.signature-pad',wrapper).clearSignature());
   }
   function setupSignature(canvas) {
-    const ctx=canvas.getContext('2d');
-    let drawing=false, signed=false, lastPoint=null;
-    const configureContext=ratio=>{
-      ctx.setTransform(ratio,0,0,ratio,0,0);
-      ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#183c59';
+    const ctx = canvas.getContext('2d');
+    let drawing = false, signed = false, lastPoint = null;
+    let activePointerId = null;
+
+    const ratioNow = () => Math.max(1, window.devicePixelRatio || 1);
+    const configureContext = () => {
+      const ratio = ratioNow();
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.lineWidth = 2.8;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#183c59';
     };
-    const resize=()=>{
-      const rect=canvas.getBoundingClientRect();
-      if(!rect.width)return;
-      const previous=signed?canvas.toDataURL('image/png'):null;
-      const ratio=Math.max(1,window.devicePixelRatio||1);
-      canvas.width=Math.round(rect.width*ratio);
-      canvas.height=Math.round( Math.max(110,rect.height)*ratio);
-      configureContext(ratio);
-      if(previous){
-        const image=new Image();
-        image.onload=()=>ctx.drawImage(image,0,0,rect.width,Math.max(110,rect.height));
-        image.src=previous;
+
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return false;
+
+      const ratio = ratioNow();
+      const width = Math.round(rect.width * ratio);
+      const height = Math.round(rect.height * ratio);
+      if (canvas.width === width && canvas.height === height) return true;
+
+      const previous = signed ? canvas.toDataURL('image/png') : null;
+      canvas.width = width;
+      canvas.height = height;
+      configureContext();
+
+      if (previous) {
+        const image = new Image();
+        image.onload = () => ctx.drawImage(image, 0, 0, rect.width, rect.height);
+        image.src = previous;
       }
+      return true;
     };
-    const point=e=>{
-      const rect=canvas.getBoundingClientRect();
-      return {x:e.clientX-rect.left,y:e.clientY-rect.top};
+
+    const point = event => {
+      const rect = canvas.getBoundingClientRect();
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top };
     };
-    const start=e=>{
-      if(e.pointerType==='mouse'&&e.button!==0)return;
-      e.preventDefault();
-      const p=point(e);
-      drawing=true;signed=true;lastPoint=p;canvas.dataset.signed='true';
-      try{canvas.setPointerCapture(e.pointerId);}catch(_){}
-      ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+0.01,p.y+0.01);ctx.stroke();
+
+    const start = event => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      if (event.cancelable) event.preventDefault();
+
+      // O formulário pode ter sido criado enquanto sua página estava oculta.
+      // Dimensiona o canvas no primeiro toque/clique, quando ele já está visível.
+      if (!resize()) return;
+
+      const p = point(event);
+      drawing = true;
+      signed = true;
+      lastPoint = p;
+      activePointerId = event.pointerId ?? null;
+      canvas.dataset.signed = 'true';
+
+      if (activePointerId !== null && canvas.setPointerCapture) {
+        try { canvas.setPointerCapture(activePointerId); } catch (_) {}
+      }
+
+      configureContext();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 1.4, 0, Math.PI * 2);
+      ctx.fillStyle = '#183c59';
+      ctx.fill();
     };
-    const move=e=>{
-      if(!drawing)return;
-      e.preventDefault();
-      const p=point(e);
-      ctx.beginPath();ctx.moveTo(lastPoint.x,lastPoint.y);ctx.lineTo(p.x,p.y);ctx.stroke();
-      lastPoint=p;
+
+    const move = event => {
+      if (!drawing) return;
+      if (event.cancelable) event.preventDefault();
+
+      const p = point(event);
+      configureContext();
+      ctx.beginPath();
+      ctx.moveTo(lastPoint.x, lastPoint.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      lastPoint = p;
     };
-    const stop=()=>{drawing=false;lastPoint=null;};
-    canvas.addEventListener('pointerdown',start);
-    canvas.addEventListener('pointermove',move);
-    ['pointerup','pointercancel','lostpointercapture'].forEach(name=>canvas.addEventListener(name,stop));
-    if('ResizeObserver' in window){
-      const observer=new ResizeObserver(()=>resize());
-      observer.observe(canvas);
-    }else{
-      window.addEventListener('resize',resize);
+
+    const stop = event => {
+      if (activePointerId !== null && event?.pointerId !== undefined &&
+          event.pointerId !== activePointerId) return;
+      drawing = false;
+      lastPoint = null;
+      activePointerId = null;
+    };
+
+    canvas.style.touchAction = 'none';
+    canvas.style.pointerEvents = 'auto';
+    canvas.style.userSelect = 'none';
+    canvas.style.webkitUserSelect = 'none';
+
+    if (window.PointerEvent) {
+      canvas.addEventListener('pointerdown', start, { passive: false });
+      canvas.addEventListener('pointermove', move, { passive: false });
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(name =>
+        canvas.addEventListener(name, stop)
+      );
+    } else {
+      // Compatibilidade com navegadores antigos sem Pointer Events.
+      canvas.addEventListener('mousedown', start);
+      window.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', stop);
+      canvas.addEventListener('touchstart', event => {
+        const touch = event.changedTouches[0];
+        if (touch) start({ clientX: touch.clientX, clientY: touch.clientY, cancelable: true, preventDefault: () => event.preventDefault() });
+      }, { passive: false });
+      canvas.addEventListener('touchmove', event => {
+        const touch = event.changedTouches[0];
+        if (touch) move({ clientX: touch.clientX, clientY: touch.clientY, cancelable: true, preventDefault: () => event.preventDefault() });
+      }, { passive: false });
+      canvas.addEventListener('touchend', stop);
+      canvas.addEventListener('touchcancel', stop);
     }
+
+    if ('ResizeObserver' in window) {
+      const observer = new ResizeObserver(() => resize());
+      observer.observe(canvas);
+    } else {
+      window.addEventListener('resize', resize);
+    }
+
     requestAnimationFrame(resize);
-    canvas.dataset.signed='false';
-    canvas.clearSignature=()=>{
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      signed=false;drawing=false;lastPoint=null;canvas.dataset.signed='false';
+    canvas.dataset.signed = 'false';
+    canvas.clearSignature = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      signed = false;
+      drawing = false;
+      lastPoint = null;
+      activePointerId = null;
+      canvas.dataset.signed = 'false';
     };
-    Object.defineProperty(canvas,'hasSignature',{get:()=>signed});
+    Object.defineProperty(canvas, 'hasSignature', { get: () => signed });
   }
   const checklistBase = [
     ['area','A área foi inspecionada e os riscos do entorno foram identificados e controlados?'],
