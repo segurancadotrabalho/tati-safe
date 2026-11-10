@@ -237,3 +237,7 @@ body,.main-content{background:var(--canvas);color:var(--ink)}
 .signature-fullscreen-actions .signature-confirm{background:#7047eb;border-color:#7047eb;color:#fff}
 .signature-lock-scroll{overflow:hidden!important}
 @media (orientation:landscape) and (max-height:520px){.signature-fullscreen{padding:6px 12px;gap:6px}.signature-fullscreen-head strong{font-size:15px}.signature-fullscreen-head small{font-size:10px}.signature-fullscreen-actions button{min-height:36px;padding:7px 14px}}
+
+@media (orientation:portrait) and (max-width:700px){
+ .signature-fullscreen.force-landscape{inset:auto;top:50%;left:50%;width:100dvh;height:100vw;max-width:none;max-height:none;transform:translate(-50%,-50%) rotate(90deg);transform-origin:center}
+}
