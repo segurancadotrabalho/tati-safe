@@ -153,3 +153,14 @@ button{ -webkit-tap-highlight-color:transparent}
  .toast{left:50%;width:max-content;max-width:calc(100% - 30px);text-align:center}
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* Navegação completa TATI SAFE */
+.nav-section-label{display:block;padding:13px 11px 5px;color:#7892a8;font-size:8px;font-weight:800;letter-spacing:1.25px}
+.main-nav{gap:4px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent}
+.nav-link{padding:10px 12px;font-size:11px;min-height:38px}
+.nav-link span{font-size:15px}
+.module-empty{min-height:260px;background:#fff;border:1px solid #e3eaf0;border-radius:13px;box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:35px;max-width:760px}
+.module-empty-icon{width:54px;height:54px;border-radius:15px;background:#eaf3fa;color:var(--blue);display:grid;place-items:center;font-size:25px;margin-bottom:14px}
+.module-empty h2{font:700 16px Manrope,sans-serif;color:#253e55;margin:0 0 8px}
+.module-empty p{max-width:470px;color:var(--muted);font-size:11px;line-height:1.7;margin:0}
+@media(max-width:700px){.main-nav{padding-bottom:20px}.nav-section-label{padding-top:15px}.module-empty{min-height:220px;padding:25px 18px}}
