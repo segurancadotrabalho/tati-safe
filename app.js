@@ -26,6 +26,11 @@
     if(page==='checklists') renderSafetyChecks();
     if(page==='em-andamento') renderRunning();
     if(page==='aguardando') renderPending();
+    if(page==='trabalhadores') renderWorkers();
+    if(page==='nova-pt') renderWorkerPicker();
+    if(page==='relatorios') renderReports();
+    if(page==='notificacoes') renderNotifications();
+    if(page==='configuracoes') applySettings();
     if(page==='inicio') renderDashboard();
     window.scrollTo({top:0,behavior:'smooth'});
   }
@@ -35,11 +40,59 @@
   });
   $('#menuButton').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
 
-  function addWorker() {
+  let selectedWorkers = [];
+  const workerKeyName = nome => String(nome||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+  // Chave única por EPI. Precisa ser idêntica ao gerar o campo e ao validar a resposta.
+  const epiKey = epi => 'worker_epi_'+String(epi||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_');
+  function renderWorkerPicker(){
+    const host=$('#workerPickerList'); if(!host) return;
+    const term=($('#workerPickerSearch')?.value||'').trim().toLowerCase();
+    const all=(typeof readWorkers==='function'?readWorkers():[]).filter(w=>w.situacao!=='Inativo');
+    const aviso=(typeof readSettings==='function'&&Number(readSettings().asoAviso))||30;
+    const list=all.filter(w=>[w.nome,w.funcao,w.matricula,w.empresa].join(' ').toLowerCase().includes(term));
+    if(!all.length){
+      host.innerHTML='<div class="worker-picker-empty">Nenhum trabalhador cadastrado ainda. Use “Adicionar trabalhador manualmente” ou cadastre a equipe na página <strong>Trabalhadores</strong>.</div>';
+    }else if(!list.length){
+      host.innerHTML='<div class="worker-picker-empty">Nenhum trabalhador cadastrado corresponde à busca. Se não estiver cadastrado, use “Adicionar trabalhador manualmente”.</div>';
+    }else{
+      host.innerHTML=list.map(w=>{
+        const checked=selectedWorkers.includes(w.id);
+        const aso=typeof asoState==='function'?asoState(w,aviso):{status:'emdia',label:''};
+        const flag=aso.status==='vencido'?'<em>ASO vencido</em>':aso.status==='avencer'?'<em class="warn">'+escapeHtml(aso.label)+'</em>':'';
+        return '<label class="worker-pick"><input type="checkbox" value="'+escapeHtml(w.id)+'" '+(checked?'checked':'')+'><span class="worker-pick-body"><strong>'+escapeHtml(w.nome||'Sem nome')+'</strong><small>'+escapeHtml([w.funcao,w.matricula?('Mat. '+w.matricula):'',w.empresa].filter(Boolean).join(' · ')||'Sem função informada')+'</small>'+flag+'</span></label>';
+      }).join('');
+    }
+    const count=$('#workerPickerCount');
+    if(count)count.textContent=selectedWorkers.length+' selecionado(s) · '+$$('.worker-card').length+' na PT';
+  }
+  function addSelectedWorkers(){
+    const all=(typeof readWorkers==='function'?readWorkers():[]);
+    selectedWorkers.forEach(id=>{
+      const w=all.find(x=>x.id===id); if(!w) return;
+      if($$('.worker-card').some(card=>card.dataset.workerRef===id)) return;
+      const card=addWorker({nome:w.nome,workerId:id});
+      if(card) card.dataset.workerRef=id;
+    });
+  }
+  $('#workerPickerList')?.addEventListener('change',event=>{
+    const box=event.target.closest('input[type="checkbox"]'); if(!box) return;
+    const id=box.value;
+    if(box.checked){
+      if(!selectedWorkers.includes(id)) selectedWorkers.push(id);
+      addSelectedWorkers();
+    }else{
+      selectedWorkers=selectedWorkers.filter(x=>x!==id);
+      const card=$$('.worker-card').find(c=>c.dataset.workerRef===id);
+      if(card) card.remove();
+    }
+    renderWorkerPicker();
+  });
+  $('#workerPickerSearch')?.addEventListener('input',renderWorkerPicker);
+  function addWorker(prefill=null) {
     workers++;
     const id=workers;
     const wrapper=document.createElement('div');
-    wrapper.className='worker-card'; wrapper.dataset.worker=id;
+    wrapper.className='worker-card'+(prefill?'':' manual'); wrapper.dataset.worker=id;
     wrapper.innerHTML=`<div class="worker-head"><strong>Trabalhador ${id}</strong><button type="button" class="remove-worker">Remover</button></div>
       <div class="worker-grid">
         <label>Nome completo<input class="worker-name" required placeholder="Nome do trabalhador"></label>
@@ -48,9 +101,17 @@
       </div>
       <div class="signature-wrap"><label>Assinatura do trabalhador</label><div class="signature-preview"><canvas class="signature-pad" aria-label="Prévia da assinatura digital"></canvas></div><div class="signature-tools"><button type="button" class="open-signature">✍ Assinar digitalmente</button><button type="button" class="clear-signature">Limpar</button></div></div>`;
     $('#workersList').appendChild(wrapper);
+    if(prefill&&prefill.nome){$('.worker-name',wrapper).value=prefill.nome;}
+    if(prefill&&prefill.workerId){wrapper.dataset.workerRef=prefill.workerId;}
+    const removeBtn=$('.remove-worker',wrapper);
     setupSignature($('.signature-pad',wrapper));
     const epiHost=document.createElement('section');epiHost.className='worker-epi-section';epiHost.innerHTML='<button type="button" class="worker-epi-toggle" aria-expanded="false"><span><strong>Conferência individual dos EPIs</strong><small>Verificar os equipamentos deste trabalhador</small></span><span class="worker-epi-chevron" aria-hidden="true">⌄</span></button><div class="worker-epi-content" hidden><div class="worker-epi-list"></div></div>';wrapper.insertBefore(epiHost,$('.signature-wrap',wrapper));$('.worker-epi-toggle',epiHost).addEventListener('click',()=>{const toggle=$('.worker-epi-toggle',epiHost);const content=$('.worker-epi-content',epiHost);const expanded=toggle.getAttribute('aria-expanded')==='true';toggle.setAttribute('aria-expanded',String(!expanded));content.hidden=expanded;});renderWorkersEpis();
-    $('.remove-worker',wrapper).addEventListener('click',()=>wrapper.remove());
+    removeBtn.addEventListener('click',()=>{
+      const ref=wrapper.dataset.workerRef;
+      if(ref) selectedWorkers=selectedWorkers.filter(x=>x!==ref);
+      wrapper.remove();
+      if(typeof renderWorkerPicker==='function') renderWorkerPicker();
+    });
     $('.clear-signature',wrapper).addEventListener('click',()=>$('.signature-pad',wrapper).clearSignature());
     $('.open-signature',wrapper).addEventListener('click',()=>openSignature($('.signature-pad',wrapper)));
   }
@@ -412,7 +473,7 @@
     ]
   };
   function checklistItems() {
-    const selected=$('input[name="equipamentos"]:checked').map(el=>el.value);
+    const selected=$$('input[name="equipamentos"]:checked').map(el=>el.value);
     const work=$('select[name="tipoTrabalho"]')?.value||'';
     return [...checklistBase,...(checklistByWork[work]||[]),...selected.flatMap(name=>checklistByEquipment[name]||[])];
   }
@@ -457,7 +518,7 @@
   $('#safetyChecklist').addEventListener('input',event=>{if(event.target.matches('[data-justification]'))updateChecklistSummary();});
   function selectedActivityEpis(){
     const work=$('select[name="tipoTrabalho"]')?.value||'Outros';
-    const equipment=$('input[name="equipamentos"]:checked').map(el=>el.value);
+    const equipment=$$('input[name="equipamentos"]:checked').map(el=>el.value);
     const items=[...(epiByWork[work]||epiByWork['Outros'])];
     if(work==='Trabalho em altura'||work==='Telhados'||equipment.includes('PTA')||equipment.includes('Andaimes')){
       if(!items.includes('Capacete com jugular'))items.push('Capacete com jugular');
@@ -468,7 +529,7 @@
   }
   function renderActivityEpis(){
     const host=$('#activityEpiList');if(!host)return;
-    const previous=new Set($('input[name="episAtividade"]:checked',host).map(el=>el.value));
+    const previous=new Set($$('input[name="episAtividade"]:checked',host).map(el=>el.value));
     const seen=new Set(JSON.parse(host.dataset.seen||'[]'));
     const items=selectedActivityEpis();
     host.innerHTML=items.map(item=>{
@@ -479,32 +540,36 @@
     renderWorkersEpis();
   }
   function renderWorkersEpis(){
-    const items=$('input[name="episAtividade"]:checked').map(el=>el.value);
+    const items=$$('input[name="episAtividade"]:checked').map(el=>el.value);
     $$('.worker-card').forEach(card=>{
       const host=$('.worker-epi-list',card);if(!host)return;
       const previous={};$$('input[type="radio"]',host).forEach(el=>{if(el.checked)previous[el.name]=el.value;});
-      host.innerHTML=items.map((item,i)=>{const key='worker_epi_'+item.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_');const value=previous[key]||'';return '<div class="worker-epi-row"><strong>'+escapeHtml(item)+'</strong><div class="worker-epi-status"><label><input type="radio" name="'+key+'" value="adequado" '+(value==='adequado'?'checked':'')+' required> Conferido / adequado</label><label><input type="radio" name="'+key+'" value="pendente" '+(value==='pendente'?'checked':'')+' required> Ausente / inadequado</label></div></div>';}).join('');
+      host.innerHTML=items.map((item,i)=>{const key=epiKey(item);const value=previous[key]||'';return '<div class="worker-epi-row"><strong>'+escapeHtml(item)+'</strong><div class="worker-epi-status"><label><input type="radio" name="'+key+'" value="adequado" '+(value==='adequado'?'checked':'')+'> Conferido / adequado</label><label><input type="radio" name="'+key+'" value="pendente" '+(value==='pendente'?'checked':'')+'> Ausente / inadequado</label></div></div>';}).join('');
     });
   }
-  $('input[name="equipamentos"]').forEach(el=>el.addEventListener('change',()=>{renderChecklist();renderActivityEpis();}));
+  $$('input[name="equipamentos"]').forEach(el=>el.addEventListener('change',()=>{renderChecklist();renderActivityEpis();}));
   $('select[name="tipoTrabalho"]').addEventListener('change',()=>{renderChecklist();renderActivityEpis();});
   $('#activityEpiList').addEventListener('change',renderWorkersEpis);
   renderChecklist();renderActivityEpis();
 
-  $('#addWorker').addEventListener('click',addWorker);
-  addWorker();
+  $('#addWorker').addEventListener('click',()=>addWorker());
 
   $('#ptForm').addEventListener('submit',event=>{
     event.preventDefault();
     const form=event.currentTarget;
     if(!form.reportValidity())return;
     const workerCards=$$('.worker-card');
-    if(!workerCards.length){toast('Adicione pelo menos um trabalhador.');return;}
+    if(!workerCards.length){toast('Selecione pelo menos um trabalhador na lista acima.');$('#workerPickerList')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
     const checklist=collectChecklist();
-    const activityEpis=$('input[name="episAtividade"]:checked').map(el=>el.value);
+    const activityEpis=$$('input[name="episAtividade"]:checked').map(el=>el.value);
     if(!activityEpis.length){toast('Defina os EPIs necessários para a atividade.');$('#activityEpiList')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
-    const epiPending=workerCards.some(card=>activityEpis.some((epi,i)=>{const key='worker_epi_'+epi.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_');const selected=$$('input[name="'+key+'"]:checked',card);return !selected||selected.value!=='adequado';}));
-    if(epiPending){toast('Todos os EPIs devem estar conferidos e adequados para cada trabalhador.');$('.worker-epi-section')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
+    const epiPending=workerCards.some(card=>activityEpis.some(epi=>{const selected=$$('input[name="'+epiKey(epi)+'"]:checked',card);return !selected.length||selected[0].value!=='adequado';}));
+    if(epiPending){
+      $$('.worker-epi-toggle').forEach(toggle=>{const content=toggle.closest('.worker-epi-section')?.querySelector('.worker-epi-content');toggle.setAttribute('aria-expanded','true');if(content)content.hidden=false;});
+      toast('Confira todos os EPIs de cada trabalhador. Os campos foram abertos abaixo.');
+      $('.worker-epi-section')?.scrollIntoView({behavior:'smooth',block:'center'});
+      return;
+    }
     const unanswered=checklist.filter(item=>!item.status);
     const unjustified=checklist.filter(item=>item.status==='nao_conforme'&&!item.justificativa);
     if(unanswered.length){toast(`Responda todos os itens do checklist (${unanswered.length} pendente(s)).`);$('#safetyChecklist [data-check-item] input:not(:checked)')?.focus();return;}
@@ -513,14 +578,15 @@
     if(unsigned){toast('A assinatura de todos os trabalhadores é obrigatória.');$('.signature-pad',unsigned).scrollIntoView({behavior:'smooth',block:'center'});return;}
     const people=workerCards.map(card=>({
       nome:$('.worker-name',card).value.trim(),
+      trabalhadorId:card.dataset.workerRef||'',
       pressaoSistolica:$('.worker-sys',card).value,
       pressaoDiastolica:$('.worker-dia',card).value,
       assinatura:$('.signature-pad',card).hasSignature?$('.signature-pad',card).toDataURL('image/png'):null
     }));
     const data=Object.fromEntries(new FormData(form).entries());
-    const record={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),criadoEm:new Date().toISOString(),status:'Aguardando liberação',...data,equipamentos:$('input[name="equipamentos"]:checked',form).map(el=>el.value),episAtividade:activityEpis,checklist,trabalhadores:people.map((person,index)=>({...person,episConferidos:activityEpis.map((epi,i)=>({epi,status:$$('input[name="worker_epi_'+epi.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_')+'"]:checked',workerCards[index])?.value||'pendente'}))}))};
+    const record={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),criadoEm:new Date().toISOString(),status:'Aguardando liberação',...data,equipamentos:$$('input[name="equipamentos"]:checked',form).map(el=>el.value),episAtividade:activityEpis,checklist,trabalhadores:people.map((person,index)=>({...person,episConferidos:activityEpis.map(epi=>({epi,status:$$('input[name="'+epiKey(epi)+'"]:checked',workerCards[index])[0]?.value||'pendente'}))}))};
     const records=readRecords();records.unshift(record);saveRecords(records);
-    form.reset();$('#workersList').innerHTML='';workers=0;addWorker();
+    form.reset();$('#workersList').innerHTML='';workers=0;selectedWorkers=[];renderWorkerPicker();
     toast('PT cadastrada e enviada para aguardando liberação.');navigate('aguardando');
   });
 
@@ -539,14 +605,14 @@
       card.classList.toggle('metric-selected',selected);
       card.setAttribute('aria-pressed',String(selected));
     });
-    const term=($('#historySearch')?.value||'').trim().toLocaleLowerCase('pt-BR');
+    const term=($('#historySearch')?.value||'').trim().toLowerCase('pt-BR');
     const filtered=all.filter(r=>{
       const matchesStatus=historyStatusFilter==='todos' ||
         (historyStatusFilter==='andamento' && r.status==='Em andamento') ||
         (historyStatusFilter==='encerradas' && r.status==='Encerrada') ||
         (historyStatusFilter==='aguardando' && r.status==='Aguardando liberação');
       const names=(r.trabalhadores||[]).map(p=>p.nome||'').join(' ');
-      const searchable=[r.local,r.servico,r.responsavelExecucao,r.responsavelArea,r.seguranca,r.tipoTrabalho,r.status,names].join(' ').toLocaleLowerCase('pt-BR');
+      const searchable=[r.local,r.servico,r.responsavelExecucao,r.responsavelArea,r.seguranca,r.tipoTrabalho,r.status,names].join(' ').toLowerCase('pt-BR');
       return matchesStatus && searchable.includes(term);
     }).sort((a,b)=>new Date(b.criadoEm||b.dataInicio||0)-new Date(a.criadoEm||a.dataInicio||0));
     const labels={todos:'todos os status',aguardando:'aguardando liberação',andamento:'em execução',encerradas:'encerradas'};
@@ -579,14 +645,14 @@
   function renderPending() {
     $$('[data-metric-filter^="pending:"]').forEach(card=>{const active=card.dataset.metricFilter==='pending:'+pendingMetricFilter;card.classList.toggle('metric-selected',active);card.setAttribute('aria-pressed',String(active));});
     const pending=readRecords().filter(r=>r.status==='Aguardando liberação');
-    const term=($('#pendingSearch')?.value||'').trim().toLocaleLowerCase('pt-BR');
+    const term=($('#pendingSearch')?.value||'').trim().toLowerCase('pt-BR');
     const workers=pending.reduce((total,r)=>total+(r.trabalhadores||[]).length,0);
     const issues=pending.filter(r=>(r.checklist||[]).some(item=>item.status==='nao_conforme')).length;
     $('#pendingTotal').textContent=pending.length;
     $('#pendingIssues').textContent=issues;
     $('#pendingWorkers').textContent=workers;
     const metricFiltered=pending.filter(r=>pendingMetricFilter==='issues'?(r.checklist||[]).some(item=>item.status==='nao_conforme'):pendingMetricFilter==='workers'?(r.trabalhadores||[]).length>0:true);
-    const filtered=metricFiltered.filter(r=>[r.local,r.servico,r.tipoTrabalho,r.responsavelExecucao,r.responsavelArea,r.seguranca,...(r.trabalhadores||[]).map(p=>p.nome)].join(' ').toLocaleLowerCase('pt-BR').includes(term));
+    const filtered=metricFiltered.filter(r=>[r.local,r.servico,r.tipoTrabalho,r.responsavelExecucao,r.responsavelArea,r.seguranca,...(r.trabalhadores||[]).map(p=>p.nome)].join(' ').toLowerCase('pt-BR').includes(term));
     const pendingFilterLabel=pendingMetricFilter==='issues'?'com não conformidades':pendingMetricFilter==='workers'?'com trabalhadores':'';
     $('#pendingCount').innerHTML=filtered.length+' de '+metricFiltered.length+' permissão(ões)'+(pendingMetricFilter!=='all'?' · '+pendingFilterLabel+' <button type="button" class="metric-clear" data-clear-metric="pending">Limpar filtro</button>':'');
     $('#pendingList').innerHTML=filtered.length?filtered.map(r=>{
@@ -610,7 +676,7 @@
   function renderRunning() {
     $$('[data-metric-filter^="running:"]').forEach(card=>{const selected=card.dataset.metricFilter==='running:'+runningMetricFilter;card.classList.toggle('metric-selected',selected);card.setAttribute('aria-pressed',String(selected));});
     const active=readRecords().filter(r=>r.status==='Em andamento');
-    const term=($('#runningSearch')?.value||'').trim().toLocaleLowerCase('pt-BR');
+    const term=($('#runningSearch')?.value||'').trim().toLowerCase('pt-BR');
     const now=new Date();
     const overdue=active.filter(r=>r.dataFim && new Date(r.dataFim)<now);
     const workers=active.reduce((total,r)=>total+(r.trabalhadores||[]).length,0);
@@ -618,7 +684,7 @@
     $('#runningOverdue').textContent=overdue.length;
     $('#runningWorkers').textContent=workers;
     const metricFiltered=active.filter(r=>runningMetricFilter==='overdue'?(r.dataFim && new Date(r.dataFim)<now):runningMetricFilter==='workers'?(r.trabalhadores||[]).length>0:true);
-    const filtered=metricFiltered.filter(r=>[r.local,r.servico,r.tipoTrabalho,r.responsavelExecucao,r.responsavelArea,r.seguranca,...(r.trabalhadores||[]).map(p=>p.nome)].join(' ').toLocaleLowerCase('pt-BR').includes(term));
+    const filtered=metricFiltered.filter(r=>[r.local,r.servico,r.tipoTrabalho,r.responsavelExecucao,r.responsavelArea,r.seguranca,...(r.trabalhadores||[]).map(p=>p.nome)].join(' ').toLowerCase('pt-BR').includes(term));
     const runningFilterLabel=runningMetricFilter==='overdue'?'com prazo vencido':runningMetricFilter==='workers'?'com trabalhadores':'';
     $('#runningCount').innerHTML=filtered.length+' de '+metricFiltered.length+' permissão(ões)'+(runningMetricFilter!=='all'?' · '+runningFilterLabel+' <button type="button" class="metric-clear" data-clear-metric="running">Limpar filtro</button>':'');
     $('#runningList').innerHTML=filtered.length?filtered.map(r=>{
@@ -649,7 +715,7 @@
     if(clear){if(clear.dataset.clearMetric==='running'){runningMetricFilter='all';renderRunning();}else{pendingMetricFilter='all';renderPending();}}
   });
   $('#historySearch').addEventListener('input',renderHistory);
-  $('#historyPrint')?.addEventListener('click',()=>window.print());
+  $('#historyPrint')?.addEventListener('click',()=>{renderHistory();document.body.classList.add('printing-history');let done=false;const cleanup=()=>{if(done)return;done=true;document.body.classList.remove('printing-history');window.removeEventListener('afterprint',cleanup);};window.addEventListener('afterprint',cleanup);try{window.print();}finally{setTimeout(cleanup,1000);}});
   $('#runningSearch').addEventListener('input',renderRunning);
   $('#pendingSearch').addEventListener('input',renderPending);
   document.addEventListener('click',event=>{
@@ -662,9 +728,9 @@
       if(!record || record.status!=='Aguardando liberação')return;
       const issues=(record.checklist||[]).filter(item=>item.status==='nao_conforme');
       const unanswered=(record.checklist||[]).filter(item=>!item.status);
-      const warning=issues.length?'\\n\\nAtenção: existem '+issues.length+' não conformidade(s) no checklist. Confirme que as medidas corretivas foram avaliadas e controladas.':'';
-      const pending=unanswered.length?'\\n\\nExistem '+unanswered.length+' item(ns) sem resposta no checklist.':'';
-      if(!confirm('Confirma a liberação desta Permissão de Trabalho para início da atividade?'+warning+pending+'\\n\\nA PT será movida para “Em andamento”.'))return;
+      const warning=issues.length?'\n\nAtenção: existem '+issues.length+' não conformidade(s) no checklist. Confirme que as medidas corretivas foram avaliadas e controladas.':'';
+      const pending=unanswered.length?'\n\nExistem '+unanswered.length+' item(ns) sem resposta no checklist.':'';
+      if(!confirm('Confirma a liberação desta Permissão de Trabalho para início da atividade?'+warning+pending+'\n\nA PT será movida para “Em andamento”.'))return;
       record.status='Em andamento';record.liberadoEm=new Date().toISOString();
       saveRecords(records);renderPending();renderRunning();renderDashboard();
       toast('PT liberada e movida para Em andamento.');
@@ -680,7 +746,7 @@
       toast('PT encerrada e registrada no histórico.');return;
     }
     const del=event.target.closest('[data-delete]');
-    if(del){if(!confirm('Deseja realmente excluir esta Permissão de Trabalho?'))return;saveRecords(readRecords().filter(r=>r.id!==del.dataset.delete));renderHistory();renderDashboard();toast('Registro excluído.');return;}
+    if(del){if(!confirm('Deseja realmente excluir esta Permissão de Trabalho?'))return;saveRecords(readRecords().filter(r=>r.id!==del.dataset.delete));renderHistory();renderDashboard();renderPending();renderRunning();toast('Registro excluído.');return;}
   });
   function showDetails(r) {
     const people=(r.trabalhadores||[]).map(p=>`• ${escapeHtml(p.nome)} — PA: ${escapeHtml(p.pressaoSistolica||'—')}/${escapeHtml(p.pressaoDiastolica||'—')} mmHg`).join('\n');
@@ -710,11 +776,11 @@
   }
   function addRisk(r){$('#aprRiskList').insertAdjacentHTML('beforeend',riskRow(r||{}));updateRiskScores();}
   function renderAprs(){
-    const all=readAprs(),term=$('#aprSearch').value.trim().toLocaleLowerCase('pt-BR'),status=aprMetricFilter==='all'?$('#aprStatusFilter').value:aprMetricFilter;
+    const all=readAprs(),term=$('#aprSearch').value.trim().toLowerCase('pt-BR'),status=aprMetricFilter==='all'?$('#aprStatusFilter').value:aprMetricFilter;
     $('#aprTotal').textContent=all.length;$('#aprDraft').textContent=all.filter(a=>a.status==='Em elaboração').length;$('#aprDone').textContent=all.filter(a=>a.status==='Concluída').length;
-    const list=all.filter(a=>(status==='todas'||a.status===status)&&[a.atividade,a.local,a.responsavel,a.descricao].join(' ').toLocaleLowerCase('pt-BR').includes(term)).sort((a,b)=>(b.atualizadoEm||'').localeCompare(a.atualizadoEm||''));
+    const list=all.filter(a=>(status==='todas'||a.status===status)&&[a.atividade,a.local,a.responsavel,a.descricao].join(' ').toLowerCase('pt-BR').includes(term)).sort((a,b)=>(b.atualizadoEm||'').localeCompare(a.atualizadoEm||''));
     $('#aprCount').textContent=list.length+' de '+all.length+' APR(s)';
-    $('[data-apr-filter]').forEach(card=>{const active=card.dataset.aprFilter===aprMetricFilter;card.classList.toggle('metric-selected',active);card.setAttribute('aria-pressed',String(active));});
+    $$('[data-apr-filter]').forEach(card=>{const active=card.dataset.aprFilter===aprMetricFilter;card.classList.toggle('metric-selected',active);card.setAttribute('aria-pressed',String(active));});
     $('#aprList').innerHTML=list.length?list.map(a=>'<article class="record-item apr-record"><div class="apr-record-main"><strong>'+escapeHtml(a.atividade)+'</strong><small>'+escapeHtml(a.local)+' · '+escapeHtml(a.responsavel)+'</small><div class="apr-record-meta"><span>Data: '+escapeHtml(a.data)+'</span><span>'+(a.riscos||[]).length+' etapa(s) de risco</span></div></div><div class="record-meta"><span class="apr-status '+(a.status==='Concluída'?'done':'draft')+'">'+escapeHtml(a.status)+'</span><div class="record-actions"><button type="button" data-apr-view="'+escapeHtml(a.id)+'">Detalhes</button><button type="button" data-apr-edit="'+escapeHtml(a.id)+'">Editar</button><button type="button" class="delete" data-apr-delete="'+escapeHtml(a.id)+'">Excluir</button></div></div></article>').join(''):'<div class="empty-state">Nenhuma APR encontrada. Altere a busca ou cadastre uma nova análise.</div>';
   }
   function openApr(a=null){
@@ -744,7 +810,7 @@
     const old=all.find(a=>a.id===id),record={...data,id,riscos,criadoEm:old?.criadoEm||new Date().toISOString(),atualizadoEm:new Date().toISOString()};
     const i=all.findIndex(a=>a.id===id);if(i>=0)all[i]=record;else all.unshift(record);saveAprs(all);closeApr();renderAprs();toast(i>=0?'APR atualizada.':'APR cadastrada com sucesso.');
   });
-  $('[data-apr-filter]').forEach(card=>card.addEventListener('click',()=>{aprMetricFilter=card.dataset.aprFilter;$('#aprStatusFilter').value=aprMetricFilter==='all'?'todas':aprMetricFilter;renderAprs();}));
+  $$('[data-apr-filter]').forEach(card=>card.addEventListener('click',()=>{aprMetricFilter=card.dataset.aprFilter;$('#aprStatusFilter').value=aprMetricFilter==='all'?'todas':aprMetricFilter;renderAprs();}));
   $('#aprSearch').addEventListener('input',renderAprs);$('#aprStatusFilter').addEventListener('change',renderAprs);
   $('#aprList').addEventListener('click',e=>{
     const v=e.target.closest('[data-apr-view]');if(v){const a=readAprs().find(x=>x.id===v.dataset.aprView);if(a)showApr(a);return;}
@@ -764,28 +830,758 @@
     const host=$('#safetyCheckItems'), work=$('#safetyCheckWork').value;
     if(!work){host.innerHTML='<div class="empty-state">Selecione o tipo de trabalho para visualizar os itens de verificação.</div>';updateSafetyCheckSummary();return;}
     const old=new Map(previous.map(x=>[x.key,x]));
-    host.innerHTML=safetyCheckItems().map((item,index)=>{const v=old.get(item[0])||{}, opts=[['conforme','Conforme','ok'],['nao_conforme','Não conforme','no'],['na','Não se aplica','na']];return '<article class="check-item" data-safety-check-item="'+escapeHtml(item[0])+'"><div class="check-question"><span class="check-number">'+String(index+1).padStart(2,'0')+'</span><strong>'+escapeHtml(item[1])+'</strong></div><div class="check-options">'+opts.map(o=>'<label class="check-option '+o[2]+'"><input type="radio" name="safety_'+escapeHtml(item[0])+'" value="'+o[0]+'" '+(v.status===o[0]?'checked':'')+'><span>'+o[1]+'</span></label>').join('')+'</div><label class="check-justification" '+(v.status==='nao_conforme'?'':'hidden')+'>Descreva a não conformidade e a ação necessária<textarea rows="2" data-safety-justification="'+escapeHtml(item[0])+'" placeholder="Descreva a pendência encontrada e a ação corretiva...">'+escapeHtml(v.justificativa||'')+'</textarea></label></article>';}).join('');
+    const open=new Set($$('#safetyCheckItems [data-safety-check-item]').filter(card=>$('[data-safety-justification]',card)?.closest('.check-justification')?.hidden===false).map(card=>card.dataset.safetyCheckItem));
+    const items=safetyCheckItems();
+    host.innerHTML=items.map((item,index)=>{
+      const v=old.get(item[0])||{}, opts=[['conforme','Conforme','ok'],['nao_conforme','Não conforme','no'],['na','Não se aplica','na']];
+      const showFix=v.status==='nao_conforme'||open.has(item[0]);
+      return '<article class="check-item" data-safety-check-item="'+escapeHtml(item[0])+'">'
+        +'<div class="check-question"><span class="check-number">'+String(index+1).padStart(2,'0')+'</span><strong>'+escapeHtml(item[1])+'</strong></div>'
+        +'<div class="check-options">'+opts.map(o=>'<label class="check-option '+o[2]+'"><input type="radio" name="safety_'+escapeHtml(item[0])+'" value="'+o[0]+'" '+(v.status===o[0]?'checked':'')+'><span>'+o[1]+'</span></label>').join('')+'</div>'
+        +'<label class="check-justification" '+(showFix?'':'hidden')+'>Descreva a não conformidade e a ação necessária'
+        +'<textarea rows="2" data-safety-justification="'+escapeHtml(item[0])+'" placeholder="Descreva a pendência encontrada e a ação corretiva...">'+escapeHtml(v.justificativa||'')+'</textarea>'
+        +'<span class="sc-action-grid">'
+        +'<label>Responsável pela correção<input type="text" data-safety-owner="'+escapeHtml(item[0])+'" value="'+escapeHtml(v.responsavel||'')+'" placeholder="Quem vai corrigir"></label>'
+        +'<label>Prazo para correção<input type="date" data-safety-due="'+escapeHtml(item[0])+'" value="'+escapeHtml(v.prazo||'')+'"></label>'
+        +'</span></label></article>';
+    }).join('');
+    // Reaplica o estado de "não conforme" para os itens que já vinham marcados.
+    items.forEach(([key])=>{
+      const card=$('#safetyCheckItems [data-safety-check-item="'+key+'"]');
+      const v=old.get(key)||{}, justification=card?$('.check-justification',card):null;
+      if(justification) justification.hidden=v.status!=='nao_conforme'&&!open.has(key);
+    });
     updateSafetyCheckSummary();
   }
-  function collectSafetyCheckItems(){return $$('#safetyCheckItems [data-safety-check-item]').map(card=>({key:card.dataset.safetyCheckItem,pergunta:$('.check-question strong',card)?.textContent||'',status:$('input[type="radio"]:checked',card)?.value||'',justificativa:$('[data-safety-justification]',card)?.value.trim()||''}));}
-  function updateSafetyCheckSummary(){const host=$('#safetyCheckSummary');if(!host)return;const items=collectSafetyCheckItems(),answered=items.filter(x=>x.status).length,issues=items.filter(x=>x.status==='nao_conforme').length;host.textContent=items.length?answered+' de '+items.length+' itens respondidos · '+issues+' não conformidade(s) · '+(items.length-answered)+' pendente(s)':'Selecione o tipo de trabalho para carregar os itens.';}
+  function collectSafetyCheckItems(){return $$('#safetyCheckItems [data-safety-check-item]').map(card=>({key:card.dataset.safetyCheckItem,pergunta:$('.check-question strong',card)?.textContent||'',status:$('input[type="radio"]:checked',card)?.value||'',justificativa:$('[data-safety-justification]',card)?.value.trim()||'',responsavel:$('[data-safety-owner]',card)?.value.trim()||'',prazo:$('[data-safety-due]',card)?.value||''}));}
+  function updateSafetyCheckSummary(){
+    const host=$('#scProgressNote');if(!host)return;
+    const items=collectSafetyCheckItems();
+    if(!items.length){
+      host.textContent='Selecione o tipo de trabalho para carregar os itens.';
+      host.className='sc-progress-note';
+      ['scProgressPercent'].forEach(id=>{const el=$('#'+id);if(el)el.textContent='0%';});
+      const fill=$('#scProgressFill');if(fill)fill.style.width='0%';
+      const done=$('#scProgressAnswered'),pend=$('#scProgressPending'),iss=$('#scProgressIssues');
+      if(done)done.textContent='0';if(pend)pend.textContent='0';if(iss)iss.textContent='0';
+      return;
+    }
+    const answered=items.filter(x=>x.status).length,issues=items.filter(x=>x.status==='nao_conforme').length,pending=items.length-answered;
+    const percent=Math.round((answered/items.length)*100);
+    const set=(id,val)=>{const el=$('#'+id);if(el)el.textContent=String(val);};
+    set('scProgressPercent',percent+'%');set('scProgressAnswered',answered);set('scProgressPending',pending);set('scProgressIssues',issues);
+    const fill=$('#scProgressFill');if(fill)fill.style.width=percent+'%';
+    if(pending){host.className='sc-progress-note';host.textContent=pending+' item(ns) aguardando resposta.';}
+    else if(issues){host.className='sc-progress-note alert';host.textContent='Tudo respondido, mas há '+issues+' não conformidade(s) para tratar antes de concluir a liberação.';}
+    else{host.className='sc-progress-note success';host.textContent='Tudo respondido e sem não conformidades. Pronto para concluir.';}
+  }
+  function sarStatusInfo(record){
+    const items=record.itens||[],issues=items.filter(i=>i.status==='nao_conforme'),answered=items.filter(i=>i.status).length;
+    return {items,issues,answered,percent:items.length?Math.round((answered/items.length)*100):0};
+  }
   function renderSafetyCheckPtOptions(selected=''){const el=$('#safetyCheckPt');el.innerHTML='<option value="">Sem vínculo com uma PT</option>'+readRecords().map(p=>'<option value="'+escapeHtml(p.id)+'">'+escapeHtml((p.local||'Local não informado')+' · '+(p.tipoTrabalho||'PT'))+'</option>').join('');el.value=selected;}
-  function renderSafetyChecks(){const all=readSafetyChecks(),term=$('#safetyCheckSearch').value.trim().toLocaleLowerCase('pt-BR'),status=safetyCheckMetricFilter==='all'?$('#safetyCheckStatus').value:(safetyCheckMetricFilter==='issues'?'todos':safetyCheckMetricFilter==='draft'?'Em preenchimento':'Concluído');$('#safetyCheckTotal').textContent=all.length;$('#safetyCheckDraft').textContent=all.filter(x=>x.status==='Em preenchimento').length;$('#safetyCheckDone').textContent=all.filter(x=>x.status==='Concluído').length;$('#safetyCheckIssues').textContent=all.filter(x=>(x.itens||[]).some(i=>i.status==='nao_conforme')).length;const list=all.filter(x=>(status==='todos'||x.status===status)&&(safetyCheckMetricFilter!=='issues'||(x.itens||[]).some(i=>i.status==='nao_conforme'))&&[x.tipoTrabalho,x.local,x.responsavel].join(' ').toLocaleLowerCase('pt-BR').includes(term)).sort((a,b)=>(b.atualizadoEm||'').localeCompare(a.atualizadoEm||''));$('#safetyCheckCount').textContent=list.length+' de '+all.length+' checklist(s)';$('[data-safety-check-filter]').forEach(card=>{const active=card.dataset.safetyCheckFilter===safetyCheckMetricFilter;card.classList.toggle('metric-selected',active);card.setAttribute('aria-pressed',String(active));});$('#safetyCheckList').innerHTML=list.length?list.map(x=>'<article class="record-item safety-check-record"><div class="safety-check-record-main"><strong>'+escapeHtml(x.tipoTrabalho)+'</strong><small>'+escapeHtml(x.local)+' · '+escapeHtml(x.responsavel)+'</small><div class="apr-record-meta"><span>Data: '+escapeHtml(x.data)+'</span><span>'+(x.itens||[]).filter(i=>i.status==='nao_conforme').length+' não conformidade(s)</span><span>'+(x.itens||[]).length+' itens</span></div></div><div class="record-meta"><span class="apr-status '+(x.status==='Concluído'?'done':'draft')+'">'+escapeHtml(x.status)+'</span><div class="record-actions"><button type="button" data-safety-view="'+escapeHtml(x.id)+'">Detalhes</button><button type="button" data-safety-edit="'+escapeHtml(x.id)+'">Editar</button><button type="button" class="delete" data-safety-delete="'+escapeHtml(x.id)+'">Excluir</button></div></div></article>').join(''):'<div class="empty-state">Nenhum checklist encontrado. Altere a busca ou cadastre uma nova inspeção.</div>';}
-  function openSafetyCheck(record=null){const form=$('#safetyCheckForm');form.reset();form.elements.id.value=record?.id||'';form.elements.tipoTrabalho.value=record?.tipoTrabalho||'';form.elements.data.value=record?.data||new Date().toISOString().slice(0,10);form.elements.local.value=record?.local||'';form.elements.responsavel.value=record?.responsavel||'';form.elements.observacoes.value=record?.observacoes||'';$$('input[name="equipamentos"]',form).forEach(el=>el.checked=(record?.equipamentos||[]).includes(el.value));renderSafetyCheckPtOptions(record?.ptId||'');$('#safetyCheckEditorTitle').textContent=record?'Editar checklist de segurança':'Novo checklist de segurança';renderSafetyCheckItems(record?.itens||[]);$('#safetyCheckEditor').hidden=false;$('#safetyCheckEditor').scrollIntoView({behavior:'smooth',block:'start'});}
-  function closeSafetyCheck(){$('#safetyCheckEditor').hidden=true;$('#safetyCheckForm').reset();$('#safetyCheckItems').innerHTML='';}
-  function persistSafetyCheck(finalize){const form=$('#safetyCheckForm');if(!form.reportValidity())return;const items=collectSafetyCheckItems();if(!items.length){toast('Selecione o tipo de trabalho para carregar os itens.');return;}if(finalize&&items.some(x=>!x.status)){toast('Responda a todos os itens antes de concluir.');return;}if(items.some(x=>x.status==='nao_conforme'&&!x.justificativa)){toast('Descreva todas as não conformidades e as ações necessárias.');return;}const data=Object.fromEntries(new FormData(form).entries()),equipamentos=$$('input[name="equipamentos"]:checked',form).map(x=>x.value),all=readSafetyChecks(),id=data.id||((crypto.randomUUID&&crypto.randomUUID())||String(Date.now())),old=all.find(x=>x.id===id),record={...data,id,equipamentos,itens,status:finalize?'Concluído':'Em preenchimento',criadoEm:old?.criadoEm||new Date().toISOString(),atualizadoEm:new Date().toISOString()};const index=all.findIndex(x=>x.id===id);if(index>=0)all[index]=record;else all.unshift(record);saveSafetyChecks(all);closeSafetyCheck();renderSafetyChecks();toast(finalize?'Checklist concluído e salvo.':'Preenchimento salvo.');}
+  function safetyCheckWorkOptions(){return [...$('#safetyCheckWork').options].slice(1).map(o=>o.value);}
+  function fillerWorkFilter(){
+    const select=$('#safetyCheckWorkFilter');if(!select||select.dataset.filled==='true')return;
+    const used=[...new Set(readSafetyChecks().map(x=>x.tipoTrabalho).filter(Boolean))];
+    const works=[...new Set([...safetyCheckWorkOptions(),...used])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    select.innerHTML='<option value="todas">Todas as atividades</option>'+works.map(w=>'<option value="'+escapeHtml(w)+'">'+escapeHtml(w)+'</option>').join('');
+    select.dataset.filled='true';
+  }
+  function safetyCheckCard(x){
+    const {items,issues,answered,percent}=sarStatusInfo(x);
+    const isIssues=issues.length>0;
+    const cls=x.status==='Concluído'?'is-done':isIssues?'is-issues':'is-draft';
+    const badge=x.status==='Concluído'?'done':'draft';
+    const today=new Date();today.setHours(0,0,0,0);
+    const late=issues.filter(i=>i.prazo&&new Date(i.prazo+'T00:00:00')<today).length;
+    const noOwner=issues.filter(i=>!i.responsavel).length;
+    return '<article class="sc-card '+cls+'" data-open-safety="'+escapeHtml(x.id)+'" tabindex="0" role="button" aria-label="Abrir detalhes do checklist">'
+      +'<div class="sc-card-main">'
+      +'<div class="sc-card-top"><span class="sc-badge '+badge+'">'+(x.status==='Concluído'?'✓ Concluído':'◷ Em preenchimento')+'</span>'
+      +(isIssues?'<span class="sc-badge issues">'+issues.length+' não conformidade(s)</span>':'<span class="sc-badge neutral">Sem pendências</span>')
+      +(x.equipamentos&&x.equipamentos.length?'<span class="sc-badge neutral">'+escapeHtml(x.equipamentos.join(' · '))+'</span>':'')
+      +'</div>'
+      +'<strong>'+escapeHtml(x.tipoTrabalho||'Atividade não informada')+'</strong>'
+      +'<div class="sc-card-meta"><span>◉ '+escapeHtml(x.local||'Local não informado')+'</span><span>♙ '+escapeHtml(x.responsavel||'Responsável não informado')+'</span><span>▦ '+formatDate(x.data?x.data+'T12:00:00':x.atualizadoEm)+'</span></div>'
+      +'<div class="sc-card-progress'+(percent===100?' full':'')+'"><div class="bar"><span style="width:'+percent+'%"></span></div><small>'+answered+'/'+items.length+' itens · '+percent+'%</small></div>'
+      +(isIssues?'<div class="sc-card-flag">! '+issues.length+' item(ns) exigem ação'+(late?' · '+late+' com prazo vencido':'')+(noOwner?' · '+noOwner+' sem responsável':'')+'</div>':'')
+      +(x.status!=='Concluído'&&!isIssues&&answered<items.length?'<div class="sc-card-flag warn">◷ '+answered+' de '+items.length+' itens respondidos</div>':'')
+      +'</div>'
+      +'<div class="sc-card-actions"><button type="button" class="primary" data-safety-view="'+escapeHtml(x.id)+'">Abrir</button><button type="button" data-safety-edit="'+escapeHtml(x.id)+'">Editar</button><button type="button" class="delete" data-safety-delete="'+escapeHtml(x.id)+'">Excluir</button></div>'
+      +'</article>';
+  }
+  function renderSafetyChecks(){
+    fillerWorkFilter();
+    const all=readSafetyChecks();
+    const term=($('#safetyCheckSearch')?.value||'').trim().toLowerCase();
+    const workFilter=$('#safetyCheckWorkFilter')?.value||'todas';
+    const sort=$('#safetyCheckSort')?.value||'recentes';
+    const issuesOf=x=>(x.itens||[]).filter(i=>i.status==='nao_conforme').length;
+    const status=safetyCheckMetricFilter==='all'?($('#safetyCheckStatus')?.value||'todos'):(safetyCheckMetricFilter==='issues'?'todos':safetyCheckMetricFilter==='draft'?'Em preenchimento':'Concluído');
+    const withIssues=all.filter(x=>issuesOf(x)>0).length;
+    $('#safetyCheckTotal').textContent=all.length;
+    $('#safetyCheckDraft').textContent=all.filter(x=>x.status==='Em preenchimento').length;
+    $('#safetyCheckDone').textContent=all.filter(x=>x.status==='Concluído').length;
+    $('#safetyCheckIssues').textContent=withIssues;
+    const hint=$('#safetyCheckIssuesHint');
+    if(hint)hint.textContent=withIssues?issuesOfAll(all)+' item(ns) a tratar':'Nenhuma pendência aberta';
+    $$('[data-safety-check-filter]').forEach(card=>{
+      const active=card.dataset.safetyCheckFilter===safetyCheckMetricFilter;
+      card.classList.toggle('metric-selected',active);
+      card.setAttribute('aria-pressed',String(active));
+      if(card.dataset.safetyCheckFilter==='issues')card.dataset.hasIssues=String(withIssues>0);
+    });
+    let list=all.filter(x=>{
+      const okStatus=status==='todos'||x.status===status;
+      const okIssues=safetyCheckMetricFilter!=='issues'||issuesOf(x)>0;
+      const okWork=workFilter==='todas'||x.tipoTrabalho===workFilter;
+      const searchable=[x.tipoTrabalho,x.local,x.responsavel,x.observacoes,(x.equipamentos||[]).join(' ')].join(' ').toLowerCase();
+      return okStatus&&okIssues&&okWork&&searchable.includes(term);
+    });
+    list=list.sort((a,b)=>{
+      if(sort==='pendencias')return issuesOf(b)-issuesOf(a);
+      const da=a.atualizadoEm||'',db=b.atualizadoEm||'';
+      return sort==='antigos'?da.localeCompare(db):db.localeCompare(da);
+    });
+    $('#safetyCheckCount').textContent=list.length+' de '+all.length+' checklist(s)';
+    $('#safetyCheckList').innerHTML=list.length?list.map(safetyCheckCard).join(''):(
+      all.length
+        ?'<div class="sc-empty"><strong>Nenhum checklist com esses filtros.</strong>Limpe a busca ou escolha outra situação e atividade.</div>'
+        :'<div class="sc-empty"><strong>Nenhum checklist registrado ainda.</strong>Clique em “Novo checklist” para criar a primeira inspeção de segurança.</div>'
+    );
+    bindSafetyCheckCards();
+  }
+  function issuesOfAll(all){return all.reduce((t,x)=>t+(x.itens||[]).filter(i=>i.status==='nao_conforme').length,0);}
+  function bindSafetyCheckCards(){
+    $$('#safetyCheckList [data-open-safety]').forEach(card=>{
+      if(card.dataset.bound==='true')return;
+      card.dataset.bound='true';
+      const open=()=>{const x=readSafetyChecks().find(v=>v.id===card.dataset.openSafety);if(x)showSafetyCheck(x);};
+      card.addEventListener('click',event=>{if(event.target.closest('button,a,input,select,textarea,label'))return;open();});
+      card.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open();}});
+    });
+  }
+  function openSafetyCheck(record=null){const form=$('#safetyCheckForm');form.reset();form.elements.id.value=record?.id||'';form.elements.tipoTrabalho.value=record?.tipoTrabalho||'';form.elements.data.value=record?.data||new Date().toISOString().slice(0,10);form.elements.local.value=record?.local||'';form.elements.responsavel.value=record?.responsavel||'';form.elements.observacoes.value=record?.observacoes||'';$$('input[name="equipamentos"]',form).forEach(el=>el.checked=(record?.equipamentos||[]).includes(el.value));renderSafetyCheckPtOptions(record?.ptId||'');$('#safetyCheckEditorTitle').textContent=record?'Editar checklist de segurança':'Novo checklist de segurança';renderSafetyCheckItems(record?.itens||[]);$('#safetyCheckEditor').hidden=false;$('#safetyCheckEditor').scrollIntoView({behavior:'smooth',block:'start'});const first=form.elements.tipoTrabalho;if(!record&&first)setTimeout(()=>first.focus({preventScroll:true}),250);}
+  function closeSafetyCheck(){$('#safetyCheckEditor').hidden=true;$('#safetyCheckForm').reset();$('#safetyCheckItems').innerHTML='';updateSafetyCheckSummary();renderSafetyChecks();}
+  function persistSafetyCheck(finalize){
+    const form=$('#safetyCheckForm');
+    if(!form.reportValidity())return;
+    const items=collectSafetyCheckItems();
+    if(!items.length){toast('Selecione o tipo de trabalho para carregar os itens.');return;}
+    if(finalize&&items.some(x=>!x.status)){toast('Responda a todos os itens antes de concluir.');return;}
+    if(items.some(x=>x.status==='nao_conforme'&&!x.justificativa)){toast('Descreva todas as não conformidades e as ações necessárias.');return;}
+    if(finalize&&items.some(x=>x.status==='nao_conforme'&&!x.responsavel)){toast('Informe o responsável pela correção de cada não conformidade.');return;}
+    const data=Object.fromEntries(new FormData(form).entries());
+    const equipamentos=$$('input[name="equipamentos"]:checked',form).map(x=>x.value);
+    const all=readSafetyChecks();
+    const id=data.id||((crypto.randomUUID&&crypto.randomUUID())||String(Date.now()));
+    const old=all.find(x=>x.id===id);
+    const record={...data,id,equipamentos,itens:items,status:finalize?'Concluído':'Em preenchimento',criadoEm:old?.criadoEm||new Date().toISOString(),atualizadoEm:new Date().toISOString()};
+    const index=all.findIndex(x=>x.id===id);
+    if(index>=0)all[index]=record;else all.unshift(record);
+    saveSafetyChecks(all);
+    closeSafetyCheck();
+    toast(finalize?'Checklist concluído e salvo.':'Preenchimento salvo.');
+  }
   $('#newSafetyChecklist').addEventListener('click',()=>openSafetyCheck());
   $('#cancelSafetyCheck').addEventListener('click',closeSafetyCheck);
+  $('#closeSafetyCheckTop')?.addEventListener('click',closeSafetyCheck);
   $('#saveSafetyCheckDraft').addEventListener('click',()=>persistSafetyCheck(false));
   $('#safetyCheckForm').addEventListener('submit',e=>{e.preventDefault();persistSafetyCheck(true);});
   $('#safetyCheckWork').addEventListener('change',()=>renderSafetyCheckItems());
-  $('#safetyCheckForm').addEventListener('change',e=>{if(e.target.matches('input[name="equipamentos"]'))renderSafetyCheckItems(collectSafetyCheckItems());const card=e.target.closest('[data-safety-check-item]');if(card&&e.target.matches('input[type="radio"]')){const label=$('[data-safety-justification]',card)?.closest('.check-justification');if(label){label.hidden=e.target.value!=='nao_conforme';if(e.target.value!=='nao_conforme')$('[data-safety-justification]',card).value='';}updateSafetyCheckSummary();}});
-  $('#safetyCheckForm').addEventListener('input',e=>{if(e.target.matches('[data-safety-justification]'))updateSafetyCheckSummary();});
-  $('[data-safety-check-filter]').forEach(card=>card.addEventListener('click',()=>{safetyCheckMetricFilter=card.dataset.safetyCheckFilter;$('#safetyCheckStatus').value=safetyCheckMetricFilter==='all'?'todos':safetyCheckMetricFilter==='draft'?'Em preenchimento':safetyCheckMetricFilter==='done'?'Concluído':'todos';renderSafetyChecks();}));
-  $('#safetyCheckSearch').addEventListener('input',renderSafetyChecks);$('#safetyCheckStatus').addEventListener('change',renderSafetyChecks);
-  $('#safetyCheckList').addEventListener('click',e=>{const view=e.target.closest('[data-safety-view]');if(view){const x=readSafetyChecks().find(v=>v.id===view.dataset.safetyView);if(x){const lines=(x.itens||[]).map((i,n)=>(n+1)+'. '+i.pergunta+'\nResposta: '+(i.status==='conforme'?'Conforme':i.status==='nao_conforme'?'Não conforme':'Não se aplica')+(i.justificativa?'\nAção/justificativa: '+i.justificativa:'')).join('\n\n');alert('CHECKLIST DE SEGURANÇA\n\nAtividade: '+x.tipoTrabalho+'\nLocal: '+x.local+'\nData: '+x.data+'\nResponsável: '+x.responsavel+'\nSituação: '+x.status+'\nEquipamentos: '+(x.equipamentos||[]).join(', ')+'\n\n'+lines+'\n\nObservações: '+(x.observacoes||'—'));}return;}const edit=e.target.closest('[data-safety-edit]');if(edit){const x=readSafetyChecks().find(v=>v.id===edit.dataset.safetyEdit);if(x)openSafetyCheck(x);return;}const del=e.target.closest('[data-safety-delete]');if(del){if(!confirm('Deseja excluir este checklist?'))return;saveSafetyChecks(readSafetyChecks().filter(x=>x.id!==del.dataset.safetyDelete));renderSafetyChecks();toast('Checklist excluído.');}});
+  $('#safetyCheckForm').addEventListener('change',e=>{
+    if(e.target.matches('input[name="equipamentos"]'))renderSafetyCheckItems(collectSafetyCheckItems());
+    const card=e.target.closest('[data-safety-check-item]');
+    if(card&&e.target.matches('input[type="radio"]')){
+      const box=$('.check-justification',card);
+      if(box){
+        box.hidden=e.target.value!=='nao_conforme';
+        if(e.target.value!=='nao_conforme'){
+          const txt=$('[data-safety-justification]',card),owner=$('[data-safety-owner]',card),due=$('[data-safety-due]',card);
+          if(txt)txt.value='';if(owner)owner.value='';if(due)due.value='';
+        }
+      }
+      updateSafetyCheckSummary();
+    }
+  });
+  $('#safetyCheckForm').addEventListener('input',e=>{if(e.target.matches('[data-safety-justification],[data-safety-owner],[data-safety-due]'))updateSafetyCheckSummary();});
+  $$('[data-safety-check-filter]').forEach(card=>card.addEventListener('click',()=>{safetyCheckMetricFilter=card.dataset.safetyCheckFilter;$('#safetyCheckStatus').value=safetyCheckMetricFilter==='all'?'todos':safetyCheckMetricFilter==='draft'?'Em preenchimento':safetyCheckMetricFilter==='done'?'Concluído':'todos';renderSafetyChecks();}));
+  $('#safetyCheckSearch').addEventListener('input',renderSafetyChecks);
+  $('#safetyCheckStatus').addEventListener('change',renderSafetyChecks);
+  $('#safetyCheckWorkFilter')?.addEventListener('change',renderSafetyChecks);
+  $('#safetyCheckSort')?.addEventListener('change',renderSafetyChecks);
+  $('#safetyCheckList').addEventListener('click',e=>{
+    const view=e.target.closest('[data-safety-view]');
+    if(view){const x=readSafetyChecks().find(v=>v.id===view.dataset.safetyView);if(x)showSafetyCheck(x);return;}
+    const edit=e.target.closest('[data-safety-edit]');
+    if(edit){const x=readSafetyChecks().find(v=>v.id===edit.dataset.safetyEdit);if(x)openSafetyCheck(x);return;}
+    const del=e.target.closest('[data-safety-delete]');
+    if(del){if(!confirm('Deseja excluir este checklist? Esta ação não pode ser desfeita.'))return;saveSafetyChecks(readSafetyChecks().filter(x=>x.id!==del.dataset.safetyDelete));renderSafetyChecks();toast('Checklist excluído.');}
+  });
+
+  let safetyDetailOverlay=null;
+  function ensureSafetyDetail(){
+    if(safetyDetailOverlay)return safetyDetailOverlay;
+    safetyDetailOverlay=document.createElement('div');
+    safetyDetailOverlay.className='sc-detail-overlay';
+    safetyDetailOverlay.innerHTML='<section class="sc-detail" role="dialog" aria-modal="true" aria-labelledby="scDetailTitle"><header class="sc-detail-head"><div><h2 id="scDetailTitle">Checklist</h2><small id="scDetailSubtitle"></small></div><button type="button" class="sc-detail-close" aria-label="Fechar">×</button></header><div class="sc-detail-body" id="scDetailBody"></div><footer class="sc-detail-foot"><span id="scDetailFootNote"></span><button type="button" class="btn btn-primary" id="scDetailPrint">⎙ Imprimir checklist</button></footer></section>';
+    document.body.appendChild(safetyDetailOverlay);
+    const close=()=>safetyDetailOverlay.classList.remove('is-open');
+    safetyDetailOverlay.querySelector('.sc-detail-close').addEventListener('click',close);
+    safetyDetailOverlay.addEventListener('click',e=>{if(e.target===safetyDetailOverlay)close();});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&safetyDetailOverlay.classList.contains('is-open'))close();});
+    safetyDetailOverlay.querySelector('#scDetailPrint').addEventListener('click',()=>{document.body.classList.add('printing-safety');const done=()=>{document.body.classList.remove('printing-safety');window.removeEventListener('afterprint',done);};window.addEventListener('afterprint',done);try{window.print();}finally{setTimeout(done,1200);}});
+    return safetyDetailOverlay;
+  }
+  const answerLabel=status=>status==='conforme'?'Conforme':status==='nao_conforme'?'Não conforme':status==='na'?'Não se aplica':'Sem resposta';
+  function showSafetyCheck(x){
+    const overlay=ensureSafetyDetail();
+    const {items,issues,answered,percent}=sarStatusInfo(x);
+    const today=new Date();today.setHours(0,0,0,0);
+    const noIssues=items.filter(i=>i.status!=='nao_conforme');
+    const issueHtml=issues.length?issues.map(i=>{
+      const late=i.prazo&&new Date(i.prazo+'T00:00:00')<today;
+      return '<div class="sc-detail-item issue"><span class="txt">'+escapeHtml(i.pergunta)+'</span>'
+        +'<span class="fix"><b>Ação:</b> '+escapeHtml(i.justificativa||'não descrita')+'<br><b>Responsável:</b> '+escapeHtml(i.responsavel||'não informado')+' · <b>Prazo:</b> '+(i.prazo?escapeHtml(new Date(i.prazo+'T12:00:00').toLocaleDateString('pt-BR'))+(late?' (vencido)':''):'não informado')+'</span></div>';
+    }).join(''):'<p class="sc-detail-note">Nenhuma não conformidade registrada neste checklist.</p>';
+    const okHtml=noIssues.length?noIssues.map(i=>'<div class="sc-detail-item"><span class="txt">'+escapeHtml(i.pergunta)+'<span class="ok-pill">'+answerLabel(i.status)+'</span></span></div>').join(''):'<p class="sc-detail-note">Sem itens avaliados.</p>';
+    overlay.querySelector('#scDetailTitle').textContent=x.tipoTrabalho||'Checklist de segurança';
+    overlay.querySelector('#scDetailSubtitle').textContent=[x.local,x.responsavel?('Responsável: '+x.responsavel):'',x.data?('Data: '+formatDate(x.data+'T12:00:00')):''].filter(Boolean).join(' · ');
+    overlay.querySelector('#scDetailBody').innerHTML=
+      '<div class="sc-detail-kpis">'
+      +'<div class="sc-detail-kpi"><span>Situação</span><strong>'+(x.status==='Concluído'?'Concluído':'Em preenchimento')+'</strong></div>'
+      +'<div class="sc-detail-kpi"><span>Respondidos</span><strong>'+answered+'/'+items.length+'</strong></div>'
+      +'<div class="sc-detail-kpi"><span>Não conformidades</span><strong>'+issues.length+'</strong></div>'
+      +'</div>'
+      +(x.equipamentos&&x.equipamentos.length?'<div class="sc-detail-section"><h3>Equipamentos</h3><p class="sc-detail-note">'+escapeHtml(x.equipamentos.join(' · '))+'</p></div>':'')
+      +'<div class="sc-detail-section"><h3>Não conformidades</h3>'+issueHtml+'</div>'
+      +'<div class="sc-detail-section"><h3>Itens conformes e não aplicáveis</h3>'+okHtml+'</div>'
+      +(x.observacoes?'<div class="sc-detail-section"><h3>Observações</h3><p class="sc-detail-note">'+escapeHtml(x.observacoes)+'</p></div>':'');
+    overlay.querySelector('#scDetailFootNote').textContent='Preenchimento '+percent+'% · atualizado em '+formatDate(x.atualizadoEm||x.criadoEm);
+    overlay.classList.add('is-open');
+  }
+
+  /* ===== Trabalhadores ===== */
+  const WORKERS_KEY='tatiSafe.trabalhadores.v1';
+  const readWorkers=()=>{try{const list=JSON.parse(localStorage.getItem(WORKERS_KEY)||'[]');return Array.isArray(list)?list:[];}catch{return [];}};
+  const saveWorkers=list=>localStorage.setItem(WORKERS_KEY,JSON.stringify(list));
+  let workerFilter='all';
+  const normName=name=>String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+  function workerUsage(){
+    const map=new Map();
+    readRecords().forEach(r=>{
+      (r.trabalhadores||[]).forEach(p=>{
+        const key=normName(p.nome);if(!key)return;
+        if(!map.has(key))map.set(key,{total:0,ultimo:null,pressao:null});
+        const item=map.get(key);item.total++;
+        const when=r.criadoEm||r.dataInicio||null;
+        if(when&&(!item.ultimo||when>item.ultimo)){item.ultimo=when;item.pressao=(p.pressaoSistolica&&p.pressaoDiastolica)?(p.pressaoSistolica+'/'+p.pressaoDiastolica):null;item.local=r.local||'';}
+      });
+    });
+    return map;
+  }
+  function asoState(worker,avisoDias=30){
+    if(!worker.asoValidade)return {status:'sem',dias:null,label:'Sem ASO cadastrado'};
+    const today=new Date();today.setHours(0,0,0,0);
+    const due=new Date(worker.asoValidade+'T00:00:00');
+    if(Number.isNaN(due.getTime()))return {status:'sem',dias:null,label:'ASO com data inválida'};
+    const dias=Math.round((due-today)/86400000);
+    if(dias<0)return {status:'vencido',dias,label:'ASO vencido há '+Math.abs(dias)+' dia(s)'};
+    if(dias<=avisoDias)return {status:'avencer',dias,label:'ASO vence em '+dias+' dia(s)'};
+    return {status:'emdia',dias,label:'ASO em dia'};
+  }
+  function workersSettings(){return typeof readSettings==='function'?readSettings():{asoAviso:30};}
+  function workerCard(w){
+    const usage=workerUsage().get(normName(w.nome));
+    const aso=asoState(w,Number(workersSettings().asoAviso)||30);
+    const inactive=w.situacao==='Inativo';
+    const cls=inactive?'is-inactive':(aso.status==='vencido'?'is-alert':aso.status==='avencer'||aso.status==='sem'?'is-warn':'is-ok');
+    const initials=(w.nome||'?').trim().split(/\s+/).slice(0,2).map(p=>p[0]||'').join('').toUpperCase();
+    return '<article class="wk-card '+cls+'" data-open-worker="'+escapeHtml(w.id)+'" tabindex="0" role="button" aria-label="Abrir ficha do trabalhador">'
+      +'<div class="wk-card-main"><div class="wk-card-head"><span class="wk-avatar">'+escapeHtml(initials||'?')+'</span><div><strong>'+escapeHtml(w.nome||'Nome não informado')+'</strong><small>'+escapeHtml(w.funcao||'Função não informada')+(w.matricula?' · Matrícula '+escapeHtml(w.matricula):'')+'</small></div></div>'
+      +'<div class="wk-card-meta"><span>▣ '+escapeHtml(w.situacao||'Ativo')+'</span>'+(w.empresa?'<span>◈ '+escapeHtml(w.empresa)+'</span>':'')+'<span>♙ '+(usage?usage.total+' participação(ões) em PT':'Sem participação em PT')+'</span></div>'
+      +(aso.status!=='emdia'?'<div class="wk-flag '+(aso.status==='vencido'?'':'warn')+'">'+(aso.status==='vencido'?'! ':'◷ ')+escapeHtml(aso.label)+'</div>':'<div class="wk-flag ok">✓ ASO válido'+(aso.dias!==null?' · '+aso.dias+' dia(s)':'')+'</div>')
+      +'</div>'
+      +'<div class="wk-card-actions"><button type="button" class="primary" data-worker-view="'+escapeHtml(w.id)+'">Ficha</button><button type="button" data-worker-edit="'+escapeHtml(w.id)+'">Editar</button><button type="button" class="delete" data-worker-delete="'+escapeHtml(w.id)+'">Excluir</button></div>'
+      +'</article>';
+  }
+  function renderWorkers(){
+    const all=readWorkers();
+    const usage=workerUsage();
+    const aviso=Number(workersSettings().asoAviso)||30;
+    const term=($('#workerSearch')?.value||'').trim().toLowerCase();
+    const situation=$('#workerSituation')?.value||'todos';
+    const asoFilterBase=$('#workerAsoFilter')?.value||'todos';
+    // O cartão "ASO vencido ou a vencer" age como filtro de ASO, para a lista bater com o número do cartão.
+    const asoFilter=workerFilter==='aso'?'alerta':asoFilterBase;
+    const sort=$('#workerSort')?.value||'nome';
+    const ativos=all.filter(w=>w.situacao!=='Inativo');
+    const alertas=all.filter(w=>{const s=asoState(w,aviso).status;return s==='vencido'||s==='avencer';});
+    // Filtro de equipe aplicado sobre os indicadores, para os números baterem com as listas.
+    const base=all.filter(w=>workerFilter==='inactive'?w.situacao==='Inativo':workerFilter==='all'?(w.situacao||'Ativo')!=='Inativo':true);
+    const baseAtivos=base.filter(w=>(w.situacao||'Ativo')!=='Inativo');
+    const baseAlertas=base.filter(w=>{const s=asoState(w,aviso).status;return s==='vencido'||s==='avencer';});
+    $('#workerTotalActive').textContent=baseAtivos.length;
+    $('#workerAsoAlert').textContent=baseAlertas.length;
+    const hint=$('#workerAsoHint');
+    if(hint){const vencidos=base.filter(w=>asoState(w,aviso).status==='vencido').length;hint.textContent=vencidos?vencidos+' vencido(s) · '+aviso+' dias de aviso':'Aviso de '+aviso+' dias';}
+    $('#workerTotalInactive').textContent=base.filter(w=>w.situacao==='Inativo').length;
+    $('#workerTotal').textContent=base.length;
+    $$('[data-worker-filter]').forEach(card=>{const active=card.dataset.workerFilter===workerFilter;card.setAttribute('aria-pressed',String(active));card.classList.toggle('metric-selected',active);});
+    let list=all.filter(w=>{
+      const aso=asoState(w,aviso).status;
+      const okTerm=[w.nome,w.funcao,w.matricula,w.empresa,w.observacoes].join(' ').toLowerCase().includes(term);
+      const okSituation=situation==='todos'||(w.situacao||'Ativo')===situation;
+      const okAso=asoFilter==='todos'||(asoFilter==='alerta'?(aso==='vencido'||aso==='avencer'):aso===asoFilter);
+      const okMetric=workerFilter==='all'?(w.situacao||'Ativo')!=='Inativo':workerFilter==='inactive'?w.situacao==='Inativo':true;
+      return okTerm&&okSituation&&okAso&&okMetric;
+    });
+    list=list.sort((a,b)=>{
+      if(sort==='uso')return (usage.get(normName(b.nome))?.total||0)-(usage.get(normName(a.nome))?.total||0);
+      if(sort==='aso'){
+        const da=asoState(a,aviso).dias,db=asoState(b,aviso).dias;
+        if(da===null)return 1;if(db===null)return -1;return da-db;
+      }
+      return (a.nome||'').localeCompare(b.nome||'','pt-BR');
+    });
+    $('#workerCount').textContent=list.length+' de '+all.length+' trabalhador(es)';
+    $('#workerList').innerHTML=list.length?list.map(workerCard).join(''):
+      (all.length?'<div class="sc-empty"><strong>Nenhum trabalhador com esses filtros.</strong>Altere a busca ou a situação selecionada.</div>'
+        :'<div class="sc-empty"><strong>Nenhum trabalhador cadastrado.</strong>Cadastre manualmente ou use “Importar das PTs” para trazer os nomes já registrados.</div>');
+    bindWorkerCards();
+  }
+  function bindWorkerCards(){
+    $$('#workerList [data-open-worker]').forEach(card=>{
+      if(card.dataset.bound==='true')return;
+      card.dataset.bound='true';
+      const open=()=>{const w=readWorkers().find(x=>x.id===card.dataset.openWorker);if(w)showWorker(w);};
+      card.addEventListener('click',e=>{if(e.target.closest('button,a,input,select,textarea,label'))return;open();});
+      card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
+    });
+  }
+  function openWorker(worker=null){
+    const form=$('#workerForm');form.reset();
+    form.elements.id.value=worker?.id||'';
+    form.elements.nome.value=worker?.nome||'';
+    form.elements.funcao.value=worker?.funcao||'';
+    form.elements.matricula.value=worker?.matricula||'';
+    form.elements.empresa.value=worker?.empresa||'';
+    form.elements.situacao.value=worker?.situacao||'Ativo';
+    form.elements.asoValidade.value=worker?.asoValidade||'';
+    form.elements.contato.value=worker?.contato||'';
+    form.elements.observacoes.value=worker?.observacoes||'';
+    $('#workerEditorTitle').textContent=worker?'Editar trabalhador':'Novo trabalhador';
+    $('#workerEditor').hidden=false;
+    $('#workerEditor').scrollIntoView({behavior:'smooth',block:'start'});
+    setTimeout(()=>form.elements.nome.focus({preventScroll:true}),250);
+  }
+  function closeWorkerEditor(){$('#workerEditor').hidden=true;$('#workerForm').reset();}
+  $('#newWorker')?.addEventListener('click',()=>openWorker());
+  $('#closeWorkerEditor')?.addEventListener('click',closeWorkerEditor);
+  $('#cancelWorker')?.addEventListener('click',closeWorkerEditor);
+  $('#workerForm')?.addEventListener('submit',e=>{
+    e.preventDefault();
+    const form=e.currentTarget;
+    if(!form.reportValidity())return;
+    const data=Object.fromEntries(new FormData(form).entries());
+    const all=readWorkers();
+    const id=data.id||((crypto.randomUUID&&crypto.randomUUID())||String(Date.now()));
+    const old=all.find(w=>w.id===id);
+    if(!data.id){
+      const dup=all.find(w=>normName(w.nome)===normName(data.nome));
+      if(dup){toast('Já existe um trabalhador com esse nome.');return;}
+    }
+    const record={...data,id,criadoEm:old?.criadoEm||new Date().toISOString(),atualizadoEm:new Date().toISOString()};
+    const i=all.findIndex(w=>w.id===id);
+    if(i>=0)all[i]=record;else all.unshift(record);
+    saveWorkers(all);
+    closeWorkerEditor();renderWorkers();renderWorkerPicker();
+    toast(i>=0?'Trabalhador atualizado.':'Trabalhador cadastrado.');
+  });
+  $('#importWorkersFromPts')?.addEventListener('click',()=>{
+    const all=readWorkers();
+    const known=new Set(all.map(w=>normName(w.nome)));
+    const found=[];
+    readRecords().forEach(r=>(r.trabalhadores||[]).forEach(p=>{
+      const name=(p.nome||'').trim();
+      const key=normName(name);
+      if(!key||known.has(key))return;
+      known.add(key);
+      found.push({id:(crypto.randomUUID&&crypto.randomUUID())||String(Date.now()+found.length),nome:name,funcao:'',matricula:'',empresa:'',situacao:'Ativo',asoValidade:'',contato:'',observacoes:'Importado das PTs.',criadoEm:new Date().toISOString(),atualizadoEm:new Date().toISOString()});
+    }));
+    if(!found.length){toast('Nenhum nome novo encontrado nas PTs.');return;}
+    saveWorkers([...found,...all]);
+    renderWorkers();renderWorkerPicker();
+    toast(found.length+' trabalhador(es) importado(s) das PTs.');
+  });
+  ['#workerSearch'].forEach(sel=>$(sel)?.addEventListener('input',renderWorkers));
+  ['#workerSituation','#workerAsoFilter','#workerSort'].forEach(sel=>$(sel)?.addEventListener('change',renderWorkers));
+  $$('[data-worker-filter]').forEach(card=>card.addEventListener('click',()=>{workerFilter=card.dataset.workerFilter;renderWorkers();}));
+  $('#workerList')?.addEventListener('click',e=>{
+    const view=e.target.closest('[data-worker-view]');
+    if(view){const w=readWorkers().find(x=>x.id===view.dataset.workerView);if(w)showWorker(w);return;}
+    const edit=e.target.closest('[data-worker-edit]');
+    if(edit){const w=readWorkers().find(x=>x.id===edit.dataset.workerEdit);if(w)openWorker(w);return;}
+    const del=e.target.closest('[data-worker-delete]');
+    if(del){
+      const w=readWorkers().find(x=>x.id===del.dataset.workerDelete);
+      if(!confirm('Excluir o cadastro de '+(w?.nome||'trabalhador')+'? As PTs já salvas não serão alteradas.'))return;
+      saveWorkers(readWorkers().filter(x=>x.id!==del.dataset.workerDelete));
+      renderWorkers();toast('Trabalhador excluído.');
+    }
+  });
+  function showWorker(w){
+    const overlay=ensureSafetyDetail();
+    const usage=workerUsage().get(normName(w.nome));
+    const aso=asoState(w,Number(workersSettings().asoAviso)||30);
+    const related=readRecords().filter(r=>(r.trabalhadores||[]).some(p=>normName(p.nome)===normName(w.nome)));
+    overlay.querySelector('#scDetailTitle').textContent=w.nome||'Trabalhador';
+    overlay.querySelector('#scDetailSubtitle').textContent=[w.funcao,w.empresa,w.matricula?('Matrícula '+w.matricula):'',w.situacao||'Ativo'].filter(Boolean).join(' · ');
+    overlay.querySelector('#scDetailBody').innerHTML=
+      '<div class="sc-detail-kpis">'
+      +'<div class="sc-detail-kpi"><span>Situação do ASO</span><strong style="font-size:13px">'+escapeHtml(aso.label)+'</strong></div>'
+      +'<div class="sc-detail-kpi"><span>ASO válido até</span><strong style="font-size:13px">'+(w.asoValidade?escapeHtml(new Date(w.asoValidade+'T12:00:00').toLocaleDateString('pt-BR')):'—')+'</strong></div>'
+      +'<div class="sc-detail-kpi"><span>Participações em PT</span><strong>'+related.length+'</strong></div>'
+      +'</div>'
+      +(w.contato?'<div class="sc-detail-section"><h3>Contato</h3><p class="sc-detail-note">'+escapeHtml(w.contato)+'</p></div>':'')
+      +(usage&&usage.pressao?'<div class="sc-detail-section"><h3>Última pressão arterial registrada</h3><p class="sc-detail-note">'+escapeHtml(usage.pressao)+' mmHg · '+formatDate(usage.ultimo)+(usage.local?' · '+escapeHtml(usage.local):'')+'<br>Dado pessoal sensível: use apenas para avaliação de aptidão e mantenha acesso restrito.</p></div>':'')
+      +'<div class="sc-detail-section"><h3>Histórico em Permissões de Trabalho</h3>'
+      +(related.length?related.slice(0,12).map(r=>'<div class="sc-detail-item"><span class="txt">'+escapeHtml(r.local||'Local não informado')+' · '+escapeHtml(r.tipoTrabalho||'Atividade')+'</span><span class="fix">'+escapeHtml(r.status||'')+' · '+formatDate(r.criadoEm||r.dataInicio)+'</span></div>').join(''):'<p class="sc-detail-note">Nenhuma PT registrada com este trabalhador.</p>')
+      +'</div>'
+      +(w.observacoes?'<div class="sc-detail-section"><h3>Observações</h3><p class="sc-detail-note">'+escapeHtml(w.observacoes)+'</p></div>':'');
+    overlay.querySelector('#scDetailFootNote').textContent='Atualizado em '+formatDate(w.atualizadoEm||w.criadoEm);
+    overlay.classList.add('is-open');
+    overlay.querySelector('#scDetailPrint').onclick=()=>{};
+  }
+
+  /* ===== Configurações ===== */
+  const SETTINGS_KEY='tatiSafe.config.v1';
+  const SETTINGS_DEFAULTS={empresaNome:'',empresaCnpj:'',empresaUnidade:'',sesmtResponsavel:'',ptValidade:12,asoAviso:30,alertaAguardando:24,alertaNaoConformidade:7,notifAso:true,notifAguardando:true,notifVencidas:true,notifNaoconformidade:true,notifApr:true,notifChecklist:true};
+  function readSettings(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}');
+      return {...SETTINGS_DEFAULTS,...(raw&&typeof raw==='object'?raw:{})};
+    }catch{return {...SETTINGS_DEFAULTS};}
+  }
+  const saveSettings=s=>localStorage.setItem(SETTINGS_KEY,JSON.stringify({...SETTINGS_DEFAULTS,...s}));
+  function fillSettingsForm(){
+    const form=$('#settingsForm');if(!form)return;
+    const s=readSettings();
+    Object.entries(s).forEach(([key,value])=>{
+      const el=form.elements[key];if(!el)return;
+      if(el.type==='checkbox')el.checked=!!value;else el.value=value;
+    });
+  }
+  function applySettings(){
+    fillSettingsForm();
+    updateStorageInfo();
+  }
+  function updateStorageInfo(){
+    const el=$('#storageInfo');if(!el)return;
+    const parts=[];
+    let total=0;
+    try{
+      for(let i=0;i<localStorage.length;i++){
+        const key=localStorage.key(i);
+        if(!key||key.indexOf('tatiSafe.')!==0)continue;
+        const size=(localStorage.getItem(key)||'').length;
+        total+=size;
+        if(key==='tatiSafe.permissoes.v1')parts.push(readRecords().length+' PT(s)');
+        else if(key==='tatiSafe.aprs.v1')parts.push(readAprs().length+' APR(s)');
+        else if(key==='tatiSafe.checklists.v1')parts.push(readSafetyChecks().length+' checklist(s)');
+        else if(key==='tatiSafe.trabalhadores.v1')parts.push(readWorkers().length+' trabalhador(es)');
+      }
+    }catch(_){}
+    el.textContent='Armazenado neste navegador: '+(parts.join(' · ')||'nenhum registro')+' · aproximadamente '+Math.max(1,Math.round(total/1024))+' KB.';
+  }
+  $('#settingsForm')?.addEventListener('submit',e=>{
+    e.preventDefault();
+    const form=e.currentTarget;
+    const data={};
+    [...form.elements].forEach(el=>{
+      if(!el.name)return;
+      if(el.type==='checkbox')data[el.name]=el.checked;
+      else if(el.type==='number')data[el.name]=Number(el.value)||SETTINGS_DEFAULTS[el.name];
+      else data[el.name]=el.value.trim();
+    });
+    saveSettings(data);
+    applySettings();
+    renderWorkers();
+    toast('Configurações salvas.');
+  });
+  function collectBackup(){
+    return {
+      app:'TATI SAFE',
+      versao:1,
+      exportadoEm:new Date().toISOString(),
+      permissoes:readRecords(),
+      aprs:readAprs(),
+      checklists:readSafetyChecks(),
+      trabalhadores:readWorkers(),
+      config:readSettings(),
+      notificacoesIgnoradas:readIgnoredNotifications()
+    };
+  }
+  $('#exportData')?.addEventListener('click',()=>{
+    try{
+      const blob=new Blob([JSON.stringify(collectBackup(),null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      const stamp=new Date().toISOString().slice(0,10);
+      a.href=url;a.download='tati-safe-backup-'+stamp+'.json';
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),2000);
+      toast('Backup exportado. Guarde o arquivo em local seguro.');
+    }catch(_){toast('Não foi possível exportar o backup.');}
+  });
+  $('#importData')?.addEventListener('change',e=>{
+    const file=e.target.files&&e.target.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{
+        const data=JSON.parse(String(reader.result));
+        if(!data||data.app!=='TATI SAFE'){toast('Arquivo não parece ser um backup do TATI SAFE.');return;}
+        if(!confirm('Importar o backup de '+new Date(data.exportadoEm||Date.now()).toLocaleString('pt-BR')+'? Os dados atuais serão substituídos.'))return;
+        if(Array.isArray(data.permissoes))saveRecords(data.permissoes);
+        if(Array.isArray(data.aprs))saveAprs(data.aprs);
+        if(Array.isArray(data.checklists))saveSafetyChecks(data.checklists);
+        if(Array.isArray(data.trabalhadores))saveWorkers(data.trabalhadores);
+        if(data.config&&typeof data.config==='object')saveSettings(data.config);
+        if(Array.isArray(data.notificacoesIgnoradas))localStorage.setItem(IGNORED_KEY,JSON.stringify(data.notificacoesIgnoradas));
+        applySettings();renderWorkers();renderDashboard();renderHistory();renderPending();renderRunning();renderAprs();renderSafetyChecks();renderNotifications();
+        toast('Backup importado com sucesso.');
+      }catch(_){toast('Arquivo inválido ou corrompido.');}
+      finally{e.target.value='';}
+    };
+    reader.readAsText(file);
+  });
+  $('#wipeData')?.addEventListener('click',()=>{
+    if(!confirm('Apagar TODOS os dados deste navegador? PTs, APRs, checklists, trabalhadores e configurações serão removidos. Exporte um backup antes.'))return;
+    if(!confirm('Confirma definitivamente a exclusão? Esta ação não pode ser desfeita.'))return;
+    ['tatiSafe.permissoes.v1','tatiSafe.aprs.v1','tatiSafe.checklists.v1','tatiSafe.trabalhadores.v1','tatiSafe.config.v1',IGNORED_KEY].forEach(k=>localStorage.removeItem(k));
+    applySettings();renderWorkers();renderDashboard();renderHistory();renderPending();renderRunning();renderAprs();renderSafetyChecks();renderNotifications();
+    toast('Todos os dados foram apagados.');
+  });
+
+  /* ===== Notificações ===== */
+  const IGNORED_KEY='tatiSafe.notificacoesIgnoradas.v1';
+  function readIgnoredNotifications(){try{const l=JSON.parse(localStorage.getItem(IGNORED_KEY)||'[]');return Array.isArray(l)?l:[];}catch{return [];}}
+  const saveIgnoredNotifications=list=>localStorage.setItem(IGNORED_KEY,JSON.stringify(list));
+  let notificationFilter='all';
+  const hoursBetween=(from,to=new Date())=>{if(!from)return null;const d=new Date(from);if(Number.isNaN(d.getTime()))return null;return Math.round((to-d)/3600000);};
+  function buildNotifications(){
+    const cfg=readSettings();
+    const list=[];
+    const now=new Date();
+    const push=(item)=>list.push(item);
+
+    if(cfg.notifAguardando){
+      readRecords().filter(r=>r.status==='Aguardando liberação').forEach(r=>{
+        const h=hoursBetween(r.criadoEm)||0;
+        const limit=Number(cfg.alertaAguardando)||24;
+        push({id:'pt-aguardando-'+r.id,severity:h>=limit?'atencao':'info',icone:'◇',titulo:'PT aguardando liberação',texto:(r.local||'Local não informado')+' · '+(r.tipoTrabalho||'Atividade')+' · aguardando há '+h+'h',page:'aguardando',alvo:'data-release',alvoId:r.id});
+      });
+    }
+    if(cfg.notifVencidas){
+      readRecords().filter(r=>r.status==='Em andamento'&&r.dataFim&&new Date(r.dataFim)<now).forEach(r=>{
+        const dias=Math.floor((now-new Date(r.dataFim))/86400000);
+        push({id:'pt-vencida-'+r.id,severity:'critico',icone:'!',titulo:'PT com prazo de execução vencido',texto:(r.local||'Local não informado')+' · venceu em '+formatDate(r.dataFim)+' ('+dias+' dia(s))',page:'em-andamento'});
+      });
+    }
+    if(cfg.notifNaoconformidade){
+      const limitDias=Number(cfg.alertaNaoConformidade)||7;
+      readSafetyChecks().forEach(x=>{
+        (x.itens||[]).filter(i=>i.status==='nao_conforme').forEach(i=>{
+          const late=i.prazo&&new Date(i.prazo+'T23:59:59')<now;
+          const semResp=!i.responsavel;
+          const dias=h=>Math.floor(h/24);
+          const idade=dias(hoursBetween(x.atualizadoEm||x.criadoEm)||0);
+          let severity=null,texto='';
+          if(late){severity='critico';texto='Prazo vencido em '+new Date(i.prazo+'T12:00:00').toLocaleDateString('pt-BR');}
+          else if(semResp){severity='atencao';texto='Sem responsável pela correção definido';}
+          else if(idade>=limitDias){severity='atencao';texto='Aberta há '+idade+' dia(s) · responsável '+(i.responsavel||'não informado');}
+          if(!severity)return;
+          push({id:'nc-'+x.id+'-'+i.key,severity,icone:'⚠',titulo:'Não conformidade: '+(x.tipoTrabalho||'checklist'),texto:escapeHtml(i.pergunta).slice(0,150)+' — '+texto,page:'checklists'});
+        });
+      });
+    }
+    if(cfg.notifAso){
+      const aviso=Number(cfg.asoAviso)||30;
+      readWorkers().forEach(w=>{
+        if(w.situacao==='Inativo')return;
+        const aso=asoState(w,aviso);
+        if(aso.status==='vencido')push({id:'aso-'+w.id,severity:'critico',icone:'♙',titulo:'ASO vencido',texto:(w.nome||'Trabalhador')+(w.funcao?' · '+w.funcao:'')+' — '+aso.label,page:'trabalhadores'});
+        else if(aso.status==='avencer')push({id:'aso-'+w.id,severity:'atencao',icone:'♙',titulo:'ASO próximo do vencimento',texto:(w.nome||'Trabalhador')+' — '+aso.label,page:'trabalhadores'});
+        else if(aso.status==='sem')push({id:'aso-'+w.id,severity:'info',icone:'♙',titulo:'Trabalhador sem ASO cadastrado',texto:(w.nome||'Trabalhador')+' — informe a validade do ASO',page:'trabalhadores'});
+      });
+    }
+    if(cfg.notifApr){
+      readAprs().filter(a=>a.status==='Em elaboração').forEach(a=>{
+        const h=hoursBetween(a.atualizadoEm||a.criadoEm)||0;
+        if(h<24)return;
+        push({id:'apr-'+a.id,severity:'atencao',icone:'▥',titulo:'APR em elaboração parada',texto:(a.atividade||'APR')+' · sem atualização há '+Math.floor(h/24)+' dia(s)',page:'analises'});
+      });
+    }
+    if(cfg.notifChecklist){
+      readSafetyChecks().filter(x=>x.status==='Em preenchimento').forEach(x=>{
+        const h=hoursBetween(x.atualizadoEm||x.criadoEm)||0;
+        if(h<48)return;
+        const itens=(x.itens||[]).length,resp=(x.itens||[]).filter(i=>i.status).length;
+        push({id:'chk-'+x.id,severity:'info',icone:'▤',titulo:'Checklist em preenchimento parado',texto:(x.tipoTrabalho||'Checklist')+' · '+resp+'/'+itens+' itens · parado há '+Math.floor(h/24)+' dia(s)',page:'checklists'});
+      });
+    }
+    const order={critico:0,atencao:1,info:2};
+    return list.sort((a,b)=>order[a.severity]-order[b.severity]);
+  }
+  function renderNotifications(){
+    const host=$('#notificationList');if(!host)return;
+    const all=buildNotifications();
+    const ignored=readIgnoredNotifications();
+    const showIgnored=$('#ntShowIgnored')?.checked;
+    const crit=all.filter(n=>n.severity==='critico').length;
+    const aten=all.filter(n=>n.severity==='atencao').length;
+    const infos=all.filter(n=>n.severity==='info').length;
+    const summary=$('#ntSummary');
+    if(summary)summary.innerHTML=
+      '<div class="nt-summary-card critical"><span>Críticos</span><strong>'+crit+'</strong></div>'
+      +'<div class="nt-summary-card warn"><span>Atenção</span><strong>'+aten+'</strong></div>'
+      +'<div class="nt-summary-card"><span>Informativos</span><strong>'+infos+'</strong></div>'
+      +'<div class="nt-summary-card"><span>Ignorados</span><strong>'+ignored.length+'</strong></div>';
+    $$('[data-nt-filter]').forEach(chip=>chip.setAttribute('aria-pressed',String(chip.dataset.ntFilter===notificationFilter)));
+    let list=all.filter(n=>notificationFilter==='all'||n.severity===notificationFilter);
+    if(!showIgnored)list=list.filter(n=>!ignored.includes(n.id));
+    host.innerHTML=list.length?list.map(n=>{
+      const isIgnored=ignored.includes(n.id);
+      return '<article class="nt-item '+n.severity+(isIgnored?' ignorado':'')+'">'
+        +'<span class="nt-icon">'+n.icone+'</span>'
+        +'<div class="nt-body"><strong>'+escapeHtml(n.titulo)+'</strong><small>'+n.texto+'</small></div>'
+        +'<div class="nt-actions">'
+        +'<button type="button" data-nt-go="'+escapeHtml(n.id)+'">Abrir</button>'
+        +'<button type="button" class="ghost" data-nt-ignore="'+escapeHtml(n.id)+'">'+(isIgnored?'Restaurar':'Ignorar')+'</button>'
+        +'</div></article>';
+    }).join(''):'<div class="sc-empty"><strong>Nenhum alerta no momento.</strong>Quando houver PT aguardando liberação, ASO vencendo, não conformidade aberta ou prazo vencido, o aviso aparece aqui.</div>';
+  }
+  $('#reloadNotifications')?.addEventListener('click',()=>{renderNotifications();toast('Alertas atualizados.');});
+  $$('[data-nt-filter]').forEach(chip=>chip.addEventListener('click',()=>{notificationFilter=chip.dataset.ntFilter;renderNotifications();}));
+  $('#ntShowIgnored')?.addEventListener('change',renderNotifications);
+  $('#notificationList')?.addEventListener('click',e=>{
+    const ignore=e.target.closest('[data-nt-ignore]');
+    if(ignore){
+      const id=ignore.dataset.ntIgnore;
+      const ignored=readIgnoredNotifications();
+      const has=ignored.includes(id);
+      saveIgnoredNotifications(has?ignored.filter(x=>x!==id):[...ignored,id]);
+      renderNotifications();
+      toast(has?'Alerta restaurado.':'Alerta ignorado.');
+      return;
+    }
+    const go=e.target.closest('[data-nt-go]');
+    if(go){
+      const n=buildNotifications().find(x=>x.id===go.dataset.ntGo);
+      if(!n)return;
+      navigate(n.page);
+    }
+  });
+
+  /* ===== Relatórios ===== */
+  function reportRange(){
+    const from=$('#reportFrom')?.value||'';
+    const to=$('#reportTo')?.value||'';
+    const work=$('#reportWork')?.value||'todas';
+    const inside=value=>{
+      if(!from&&!to)return true;
+      if(!value)return false;
+      const day=String(value).slice(0,10);
+      if(from&&day<from)return false;
+      if(to&&day>to)return false;
+      return true;
+    };
+    return {from,to,work,inside};
+  }
+  function fillReportWorkOptions(){
+    const select=$('#reportWork');if(!select||select.dataset.filled==='true')return;
+    const works=[...new Set([...readRecords().map(r=>r.tipoTrabalho),...readAprs().map(a=>a.atividade),...readSafetyChecks().map(c=>c.tipoTrabalho)].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    select.innerHTML='<option value="todas">Todas as atividades</option>'+works.map(w=>'<option value="'+escapeHtml(w)+'">'+escapeHtml(w)+'</option>').join('');
+    select.dataset.filled='true';
+  }
+  function barList(items,colorFor){
+    if(!items.length)return '<p class="rp-empty">Sem registros no período selecionado.</p>';
+    const max=Math.max(...items.map(i=>i.value),1);
+    return items.map(i=>{
+      const pct=Math.round((i.value/max)*100);
+      return '<div class="rp-bar-row"><span title="'+escapeHtml(i.label)+'">'+escapeHtml(i.label)+'</span><strong>'+i.value+'</strong><div class="rp-bar-track"><i class="'+(colorFor?colorFor(i):'')+'" style="width:'+pct+'%"></i></div></div>';
+    }).join('');
+  }
+  function renderReports(){
+    if(!$('#reportKpis'))return;
+    fillReportWorkOptions();
+    const {work,inside}=reportRange();
+    const pts=readRecords().filter(r=>inside(r.criadoEm||r.dataInicio)&&(work==='todas'||r.tipoTrabalho===work));
+    const aprs=readAprs().filter(a=>inside(a.atualizadoEm||a.criadoEm||a.data));
+    const checks=readSafetyChecks().filter(c=>inside(c.atualizadoEm||c.criadoEm||c.data)&&(work==='todas'||c.tipoTrabalho===work));
+    const workersCount=readWorkers().filter(w=>w.situacao!=='Inativo').length;
+    const liberadas=pts.filter(r=>r.status==='Em andamento').length;
+    const encerradas=pts.filter(r=>r.status==='Encerrada').length;
+    const aguardando=pts.filter(r=>r.status==='Aguardando liberação').length;
+    const ncAbertas=checks.reduce((t,c)=>t+(c.itens||[]).filter(i=>i.status==='nao_conforme').length,0);
+    const itens=checks.reduce((t,c)=>t+(c.itens||[]).length,0);
+    const conformes=checks.reduce((t,c)=>t+(c.itens||[]).filter(i=>i.status==='conforme').length,0);
+    const naoAplica=checks.reduce((t,c)=>t+(c.itens||[]).filter(i=>i.status==='na').length,0);
+    const semResposta=checks.reduce((t,c)=>t+(c.itens||[]).filter(i=>!i.status).length,0);
+    const pct=n=>itens?Math.round((n/itens)*100):0;
+    $('#reportKpis').innerHTML=
+      '<div class="rp-kpi"><span>Permissões de Trabalho</span><strong>'+pts.length+'</strong><small>'+liberadas+' em execução · '+encerradas+' encerradas · '+aguardando+' aguardando</small></div>'
+      +'<div class="rp-kpi'+(ncAbertas?' alert':'')+'"><span>Não conformidades abertas</span><strong>'+ncAbertas+'</strong><small>em '+checks.length+' checklist(s)</small></div>'
+      +'<div class="rp-kpi"><span>APRs</span><strong>'+aprs.length+'</strong><small>'+aprs.filter(a=>a.status==='Concluída').length+' concluída(s)</small></div>'
+      +'<div class="rp-kpi"><span>Trabalhadores ativos</span><strong>'+workersCount+'</strong><small>equipe cadastrada</small></div>';
+    $('#rpStatusChart').innerHTML=barList([
+      {label:'Aguardando liberação',value:aguardando},
+      {label:'Em execução',value:liberadas},
+      {label:'Encerradas',value:encerradas}
+    ],i=>i.label==='Encerradas'?'green':i.label==='Em execução'?'':'amber');
+    $('#rpCheckChart').innerHTML=itens?barList([
+      {label:'Conformes',value:conformes},
+      {label:'Não conformes',value:ncAbertas},
+      {label:'Não se aplica',value:naoAplica},
+      {label:'Sem resposta',value:semResposta}
+    ],i=>i.label==='Conformes'?'green':i.label==='Não conformes'?'red':i.label==='Sem resposta'?'amber':''):'<p class="rp-empty">Nenhum item de checklist no período.</p>';
+    const countBy=arr=>{
+      const map=new Map();
+      arr.forEach(v=>{const key=(v||'').trim()||'Não informado';map.set(key,(map.get(key)||0)+1);});
+      return [...map.entries()].map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value).slice(0,6);
+    };
+    $('#rpPlaces').innerHTML=barList(countBy(pts.map(r=>r.local)),()=>'');
+    $('#rpOwners').innerHTML=barList(countBy(pts.map(r=>r.responsavelExecucao)),()=>'');
+    const pend=[];
+    pts.filter(r=>r.status==='Aguardando liberação').forEach(r=>pend.push({txt:'PT aguardando liberação',detalhe:(r.local||'Local não informado')+' · '+(r.tipoTrabalho||''),tipo:'warn'}));
+    pts.filter(r=>r.status==='Em andamento'&&r.dataFim&&new Date(r.dataFim)<new Date()).forEach(r=>pend.push({txt:'PT com prazo vencido',detalhe:(r.local||'')+' · venceu em '+formatDate(r.dataFim),tipo:'red'}));
+    checks.forEach(c=>(c.itens||[]).filter(i=>i.status==='nao_conforme').forEach(i=>pend.push({txt:'Não conformidade: '+(c.tipoTrabalho||'checklist'),detalhe:(i.justificativa||'sem descrição')+(i.responsavel?' · '+i.responsavel:' · sem responsável'),tipo:'red'})));
+    $('#rpPendings').innerHTML=pend.length?pend.slice(0,12).map(p=>'<div class="rp-pending-item"><span><b>'+escapeHtml(p.txt)+'</b><br>'+escapeHtml(p.detalhe)+'</span><span class="sc-badge '+(p.tipo==='red'?'issues':'draft')+'">'+(p.tipo==='red'?'Ação necessária':'Aguardando')+'</span></div>').join(''):'<p class="rp-empty">Nenhuma pendência aberta no período selecionado.</p>';
+  }
+  ['#reportFrom','#reportTo','#reportWork'].forEach(sel=>$(sel)?.addEventListener('change',renderReports));
+  $('#reportThisMonth')?.addEventListener('click',()=>{
+    const now=new Date();
+    const first=new Date(now.getFullYear(),now.getMonth(),1);
+    const fmt=d=>d.toISOString().slice(0,10);
+    if($('#reportFrom'))$('#reportFrom').value=fmt(first);
+    if($('#reportTo'))$('#reportTo').value=fmt(now);
+    renderReports();
+  });
+  $('#reportClear')?.addEventListener('click',()=>{
+    if($('#reportFrom'))$('#reportFrom').value='';
+    if($('#reportTo'))$('#reportTo').value='';
+    if($('#reportWork'))$('#reportWork').value='todas';
+    renderReports();
+  });
+  $('#printReport')?.addEventListener('click',()=>window.print());
 
   renderDashboard();
+  renderWorkers();
+  renderWorkerPicker();
+  applySettings();
+  renderNotifications();
 
   function updateClock(){
     const now=new Date();

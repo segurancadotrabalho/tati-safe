@@ -8,7 +8,7 @@
   <title>TATI SAFE | Gestão de PT</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=tati-safe-v37">
+  <link rel="stylesheet" href="styles.css?v=tati-safe-v41">
 </head>
 <body>
   <div class="app-shell">
@@ -42,8 +42,8 @@
       </header>
 
       <section class="page active" id="page-inicio">
-
-<div class="stats-grid">
+        <div class="section-heading"><div><span class="eyebrow">VISÃO GERAL OPERACIONAL</span><h2>Painel inicial</h2><p>Acompanhe o panorama das permissões de trabalho, os alertas em aberto e os atalhos do dia.</p></div><button type="button" class="btn btn-primary" data-go="nova-pt">＋ Nova PT</button></div>
+        <div class="stats-grid">
           <button type="button" class="stat-card stat-card-button" data-go="historico" data-filter="todos" aria-label="Ver todas as permissões"><span class="stat-icon blue">▤</span><span class="stat-label">Total de PTs</span><strong id="totalPts">0</strong><small>Ver todos os registros <span class="stat-card-arrow">→</span></small></button>
           <button type="button" class="stat-card stat-card-button" data-go="historico" data-filter="andamento" aria-label="Ver permissões em andamento"><span class="stat-icon green">✓</span><span class="stat-label">Em andamento</span><strong id="activePts">0</strong><small>Ver em execução <span class="stat-card-arrow">→</span></small></button>
           <button type="button" class="stat-card stat-card-button" data-go="historico" data-filter="encerradas" aria-label="Ver permissões encerradas"><span class="stat-icon amber">◷</span><span class="stat-label">Encerradas</span><strong id="closedPts">0</strong><small>Ver finalizadas <span class="stat-card-arrow">→</span></small></button>
@@ -58,6 +58,7 @@
       </section>
 
       <section class="page" id="page-nova-pt">
+        <div class="section-heading"><div><span class="eyebrow">GESTÃO DE PT</span><h2>Nova Permissão de Trabalho</h2><p>Preencha as etapas abaixo para liberar a atividade com segurança.</p></div></div>
         <form id="ptForm">
           <section class="form-panel">
             <div class="panel-title"><span class="step-number">01</span><div><h2>Tipo de acesso / equipamento</h2><p>Selecione uma opção para abrir os itens de verificação correspondentes.</p></div></div>
@@ -102,9 +103,13 @@
           </section>
 
           <section class="form-panel">
-            <div class="panel-title"><span class="step-number">06</span><div><h2>Trabalhadores envolvidos</h2><p>Cadastre os trabalhadores, pressão arterial e assinatura.</p></div></div>
+            <div class="panel-title"><span class="step-number">06</span><div><h2>Trabalhadores envolvidos</h2><p>Selecione os trabalhadores cadastrados, confira a pressão arterial e colha a assinatura.</p></div></div>
+            <div class="worker-picker">
+              <div class="worker-picker-search"><span aria-hidden="true">⌕</span><input type="search" id="workerPickerSearch" placeholder="Buscar trabalhador cadastrado pelo nome ou função..." aria-label="Buscar trabalhador cadastrado"></div>
+              <div id="workerPickerList" class="worker-picker-list"></div>
+              <div class="worker-picker-foot"><span id="workerPickerCount">0 selecionado(s)</span><button type="button" class="btn btn-secondary" id="addWorker">＋ Adicionar trabalhador manualmente</button></div>
+            </div>
             <div id="workersList"></div>
-            <button type="button" class="btn btn-secondary" id="addWorker">＋ Adicionar trabalhador</button>
           </section>
 
           <section class="form-panel">
@@ -166,16 +171,17 @@
 <div id="aprList" class="record-list"><div class="empty-state">Nenhuma APR cadastrada. Clique em “Nova APR” para começar.</div></div></section>
 
       <section class="page" id="page-checklists">
-        <div class="section-heading checklist-manager-heading"><div><span class="eyebrow">PREVENÇÃO E CONTROLE OPERACIONAL</span><h2>Checklists de segurança</h2><p>Crie inspeções específicas por atividade e equipamento, registre evidências e acompanhe as pendências.</p></div><button type="button" class="btn btn-primary" id="newSafetyChecklist">＋ Novo checklist</button></div>
-        <div class="stats-grid checklist-manager-stats">
-           <button type="button" class="stat-card stat-card-button" data-safety-check-filter="all" aria-pressed="true"><span class="stat-label">Total de checklists</span><strong id="safetyCheckTotal">0</strong><small>Ver todos os registros <span class="stat-card-arrow">→</span></small></button>
-           <button type="button" class="stat-card stat-card-button" data-safety-check-filter="draft" aria-pressed="false"><span class="stat-label">Em preenchimento</span><strong id="safetyCheckDraft">0</strong><small>Ver inspeções não finalizadas <span class="stat-card-arrow">→</span></small></button>
-           <button type="button" class="stat-card stat-card-button" data-safety-check-filter="done" aria-pressed="false"><span class="stat-label">Concluídos</span><strong id="safetyCheckDone">0</strong><small>Ver inspeções finalizadas <span class="stat-card-arrow">→</span></small></button>
-           <button type="button" class="stat-card stat-card-button" data-safety-check-filter="issues" aria-pressed="false"><span class="stat-label">Com não conformidades</span><strong id="safetyCheckIssues">0</strong><small>Ver itens que exigem tratamento <span class="stat-card-arrow">→</span></small></button>
+        <div class="section-heading checklist-manager-heading"><div><span class="eyebrow">PREVENÇÃO E CONTROLE OPERACIONAL</span><h2>Checklists de segurança</h2><p>Crie inspeções por atividade e equipamento, acompanhe o preenchimento e trate as não conformidades até a conclusão.</p></div><button type="button" class="btn btn-primary" id="newSafetyChecklist">＋ Novo checklist</button></div>
+        <div class="sc-summary">
+           <button type="button" class="sc-summary-card" data-safety-check-filter="all" aria-pressed="true"><span class="sc-summary-icon total">▤</span><span class="sc-summary-body"><span class="sc-summary-label">Total de checklists</span><strong id="safetyCheckTotal">0</strong><small>Todos os registros salvos</small></span></button>
+           <button type="button" class="sc-summary-card" data-safety-check-filter="draft" aria-pressed="false"><span class="sc-summary-icon draft">◷</span><span class="sc-summary-body"><span class="sc-summary-label">Em preenchimento</span><strong id="safetyCheckDraft">0</strong><small>Inspeções a finalizar</small></span></button>
+           <button type="button" class="sc-summary-card" data-safety-check-filter="done" aria-pressed="false"><span class="sc-summary-icon done">✓</span><span class="sc-summary-body"><span class="sc-summary-label">Concluídos</span><strong id="safetyCheckDone">0</strong><small>Inspeções finalizadas</small></span></button>
+           <button type="button" class="sc-summary-card" data-safety-check-filter="issues" aria-pressed="false"><span class="sc-summary-icon issues">!</span><span class="sc-summary-body"><span class="sc-summary-label">Com não conformidades</span><strong id="safetyCheckIssues">0</strong><small id="safetyCheckIssuesHint">Itens que exigem tratamento</small></span></button>
          </div>
         <section class="form-panel safety-check-editor" id="safetyCheckEditor" hidden>
-          <div class="panel-title"><span class="step-number">01</span><div><h2 id="safetyCheckEditorTitle">Novo checklist de segurança</h2><p>Selecione a atividade e os equipamentos. Os itens serão ajustados automaticamente.</p></div></div>
-          <form id="safetyCheckForm">
+          <div class="panel-title sc-editor-head"><span class="step-number">01</span><div><h2 id="safetyCheckEditorTitle">Novo checklist de segurança</h2><p>Selecione a atividade e os equipamentos. Os itens são ajustados automaticamente.</p></div><button type="button" class="sc-editor-close" id="closeSafetyCheckTop" aria-label="Fechar o editor">×</button></div>
+          <div class="sc-editor-layout">
+          <form id="safetyCheckForm" class="sc-editor-main">
             <input type="hidden" name="id">
             <div class="form-grid">
               <label class="field">Tipo de trabalho<select name="tipoTrabalho" id="safetyCheckWork" required><option value="">Selecione a atividade</option><option>Trabalho em altura</option><option>Trabalho a quente</option><option>Espaço confinado</option><option>Elétrica</option><option>Manutenção industrial</option><option>Telhados</option><option>Movimentação de cargas</option><option>Trabalho com empilhadeiras</option><option>Escavação</option><option>Outros</option></select></label>
@@ -189,36 +195,144 @@
               <label class="choice-card"><input type="checkbox" name="equipamentos" value="Escadas"><span class="choice-symbol">⇧</span><strong>Escadas</strong><small>Escadas portáteis</small></label>
               <label class="choice-card"><input type="checkbox" name="equipamentos" value="Andaimes"><span class="choice-symbol">▦</span><strong>Andaimes</strong><small>Montagem e utilização</small></label>
             </div></div>
-            <div class="panel-title safety-check-items-title"><span class="step-number">02</span><div><h2>Itens de verificação</h2><p>Responda a cada item. Não conformidades exigem descrição e ação necessária.</p></div></div>
+            <div class="panel-title safety-check-items-title"><span class="step-number">02</span><div><h2>Itens de verificação</h2><p>Responda a cada item. Não conformidades exigem descrição, responsável e prazo para correção.</p></div></div>
             <div class="checklist-legend"><span><i class="legend-dot ok"></i> Conforme</span><span><i class="legend-dot no"></i> Não conforme</span><span><i class="legend-dot na"></i> Não se aplica</span></div>
             <div id="safetyCheckItems"></div>
-            <div class="checklist-summary" id="safetyCheckSummary">Selecione o tipo de trabalho para carregar os itens.</div>
             <label class="field safety-check-notes">Observações gerais<textarea name="observacoes" rows="3" placeholder="Registre observações, recomendações e ações complementares."></textarea></label>
             <div class="form-actions"><button type="button" class="btn btn-secondary" id="cancelSafetyCheck">Cancelar</button><button type="button" class="btn btn-secondary" id="saveSafetyCheckDraft">Salvar preenchimento</button><button type="submit" class="btn btn-primary">Concluir checklist</button></div>
           </form>
+          <aside class="sc-progress" aria-live="polite">
+            <div class="sc-progress-head"><strong>Progresso da inspeção</strong><small id="scProgressPercent">0%</small></div>
+            <div class="sc-progress-bar"><span id="scProgressFill" style="width:0%"></span></div>
+            <ul class="sc-progress-list">
+              <li><span class="sc-dot ok"></span>Respondidos<strong id="scProgressAnswered">0</strong></li>
+              <li><span class="sc-dot na"></span>Pendentes<strong id="scProgressPending">0</strong></li>
+              <li><span class="sc-dot no"></span>Não conformes<strong id="scProgressIssues">0</strong></li>
+            </ul>
+            <div class="sc-progress-note" id="scProgressNote">Selecione o tipo de trabalho para carregar os itens.</div>
+            <p class="sc-progress-hint">O painel acompanha suas respostas em tempo real e guarda o preenchimento no dispositivo.</p>
+          </aside>
+          </div>
         </section>
-        <div class="history-toolbar safety-check-toolbar"><input id="safetyCheckSearch" type="search" placeholder="Buscar por atividade, local ou responsável..." aria-label="Buscar checklists"><select id="safetyCheckStatus" aria-label="Filtrar situação"><option value="todos">Todas as situações</option><option>Em preenchimento</option><option>Concluído</option></select><span id="safetyCheckCount">0 registros</span></div>
-        <div id="safetyCheckList" class="record-list"><div class="empty-state">Nenhum checklist registrado. Clique em “Novo checklist” para começar.</div></div>
+        <div class="sc-toolbar">
+          <div class="sc-toolbar-search"><span aria-hidden="true">⌕</span><input id="safetyCheckSearch" type="search" placeholder="Buscar por atividade, local ou responsável..." aria-label="Buscar checklists"></div>
+          <select id="safetyCheckStatus" aria-label="Filtrar situação"><option value="todos">Todas as situações</option><option>Em preenchimento</option><option>Concluído</option></select>
+          <select id="safetyCheckWorkFilter" aria-label="Filtrar por atividade"><option value="todas">Todas as atividades</option></select>
+          <select id="safetyCheckSort" aria-label="Ordenar checklists"><option value="recentes">Mais recentes</option><option value="antigos">Mais antigos</option><option value="pendencias">Mais não conformidades</option></select>
+          <span id="safetyCheckCount" class="sc-count">0 registros</span>
+        </div>
+        <div id="safetyCheckList" class="sc-list"><div class="empty-state">Nenhum checklist registrado. Clique em “Novo checklist” para começar.</div></div>
       </section>
 
-      <section class="page module-placeholder" id="page-trabalhadores">
-
-        <div class="module-empty"><span class="module-empty-icon">♙</span><h2>Área preparada</h2><p>Este módulo já faz parte da estrutura de navegação. Vamos configurar seus recursos em uma próxima etapa, mantendo o mesmo padrão visual em computador, tablet e celular.</p></div>
+      <section class="page" id="page-trabalhadores">
+        <div class="section-heading wk-heading"><div><span class="eyebrow">CADASTRO E QUALIFICAÇÃO</span><h2>Trabalhadores</h2><p>Mantenha a equipe cadastrada, acompanhe a validade do ASO e consulte o histórico de participação em Permissões de Trabalho.</p></div><div class="wk-heading-actions"><button type="button" class="btn btn-secondary" id="importWorkersFromPts">⇩ Importar das PTs</button><button type="button" class="btn btn-primary" id="newWorker">＋ Novo trabalhador</button></div></div>
+        <div class="sc-summary wk-summary">
+          <button type="button" class="sc-summary-card" data-worker-filter="all" aria-pressed="true"><span class="sc-summary-icon total">♙</span><span class="sc-summary-body"><span class="sc-summary-label">Trabalhadores ativos</span><strong id="workerTotalActive">0</strong><small>Equipe disponível</small></span></button>
+          <button type="button" class="sc-summary-card" data-worker-filter="aso" aria-pressed="false"><span class="sc-summary-icon issues">!</span><span class="sc-summary-body"><span class="sc-summary-label">ASO vencido ou a vencer</span><strong id="workerAsoAlert">0</strong><small id="workerAsoHint">Atenção à validade</small></span></button>
+          <button type="button" class="sc-summary-card" data-worker-filter="inactive" aria-pressed="false"><span class="sc-summary-icon draft">◷</span><span class="sc-summary-body"><span class="sc-summary-label">Inativos</span><strong id="workerTotalInactive">0</strong><small>Fora da equipe</small></span></button>
+          <button type="button" class="sc-summary-card" data-worker-filter="total" aria-pressed="false"><span class="sc-summary-icon done">Σ</span><span class="sc-summary-body"><span class="sc-summary-label">Total do cadastro</span><strong id="workerTotal">0</strong><small>Na visão atual</small></span></button>
+        </div>
+        <section class="form-panel wk-editor" id="workerEditor" hidden>
+          <div class="panel-title sc-editor-head"><span class="step-number">♙</span><div><h2 id="workerEditorTitle">Novo trabalhador</h2><p>Preencha os dados de identificação, função e controle do ASO.</p></div><button type="button" class="sc-editor-close" id="closeWorkerEditor" aria-label="Fechar o cadastro">×</button></div>
+          <form id="workerForm">
+            <input type="hidden" name="id">
+            <div class="form-grid">
+              <label class="field span-2">Nome completo<input name="nome" required placeholder="Nome do trabalhador"></label>
+              <label class="field">Função / cargo<input name="funcao" placeholder="Ex.: Eletricista de manutenção"></label>
+              <label class="field">Matrícula<input name="matricula" placeholder="Ex.: 10245"></label>
+              <label class="field">Empresa / contrato<input name="empresa" placeholder="Ex.: Própria ou terceirizada"></label>
+              <label class="field">Situação<select name="situacao"><option>Ativo</option><option>Inativo</option></select></label>
+              <label class="field">ASO válido até<input name="asoValidade" type="date"></label>
+              <label class="field">Contato (telefone)<input name="contato" placeholder="Opcional"></label>
+              <label class="field span-2">Observações<textarea name="observacoes" rows="2" placeholder="Restrições, treinamentos, certificações..."></textarea></label>
+            </div>
+            <div class="form-actions"><button type="button" class="btn btn-secondary" id="cancelWorker">Cancelar</button><button type="submit" class="btn btn-primary">Salvar trabalhador</button></div>
+          </form>
+        </section>
+        <div class="sc-toolbar">
+          <div class="sc-toolbar-search"><span aria-hidden="true">⌕</span><input id="workerSearch" type="search" placeholder="Buscar por nome, função, matrícula ou empresa..." aria-label="Buscar trabalhadores"></div>
+          <select id="workerSituation" aria-label="Filtrar situação"><option value="todos">Todas as situações</option><option>Ativo</option><option>Inativo</option></select>
+          <select id="workerAsoFilter" aria-label="Filtrar ASO"><option value="todos">ASO: todos</option><option value="vencido">ASO vencido</option><option value="avencer">ASO a vencer</option><option value="emdia">ASO em dia</option><option value="sem">Sem ASO cadastrado</option></select>
+          <select id="workerSort" aria-label="Ordenar trabalhadores"><option value="nome">Nome (A-Z)</option><option value="aso">ASO mais próximo</option><option value="uso">Mais participações</option></select>
+          <span id="workerCount" class="sc-count">0 trabalhadores</span>
+        </div>
+        <div id="workerList" class="sc-list"><div class="empty-state">Nenhum trabalhador cadastrado. Use “Novo trabalhador” ou importe os nomes que já aparecem nas PTs.</div></div>
       </section>
 
-      <section class="page module-placeholder" id="page-relatorios">
-
-        <div class="module-empty"><span class="module-empty-icon">▥</span><h2>Área preparada</h2><p>Este módulo já faz parte da estrutura de navegação. Vamos configurar seus recursos em uma próxima etapa, mantendo o mesmo padrão visual em computador, tablet e celular.</p></div>
+      <section class="page" id="page-relatorios">
+        <div class="section-heading wk-heading"><div><span class="eyebrow">ANÁLISE E INDICADORES</span><h2>Relatórios</h2><p>Consolide os registros de PTs, APRs e checklists em indicadores de segurança por período e por atividade.</p></div><button type="button" class="btn btn-secondary" id="printReport">⎙ Imprimir relatório</button></div>
+        <div class="rp-filters">
+          <label class="field">Data inicial<input id="reportFrom" type="date"></label>
+          <label class="field">Data final<input id="reportTo" type="date"></label>
+          <label class="field">Tipo de trabalho<select id="reportWork"><option value="todas">Todas as atividades</option></select></label>
+          <div class="rp-filter-actions"><button type="button" class="btn btn-secondary" id="reportThisMonth">Este mês</button><button type="button" class="btn btn-secondary" id="reportClear">Limpar</button></div>
+        </div>
+        <div class="rp-kpis" id="reportKpis"></div>
+        <div class="rp-grid">
+          <section class="rp-card"><h3>Permissões por situação</h3><div id="rpStatusChart" class="rp-bars"></div></section>
+          <section class="rp-card"><h3>Checklists: conformidade dos itens</h3><div id="rpCheckChart" class="rp-bars"></div></section>
+          <section class="rp-card"><h3>Locais com mais registros</h3><div id="rpPlaces" class="rp-bars"></div></section>
+          <section class="rp-card"><h3>Responsáveis com mais PTs</h3><div id="rpOwners" class="rp-bars"></div></section>
+        </div>
+        <section class="rp-card rp-pending"><h3>Pendências que exigem ação</h3><div id="rpPendings"></div></section>
       </section>
 
-      <section class="page module-placeholder" id="page-notificacoes">
-
-        <div class="module-empty"><span class="module-empty-icon">♢</span><h2>Área preparada</h2><p>Este módulo já faz parte da estrutura de navegação. Vamos configurar seus recursos em uma próxima etapa, mantendo o mesmo padrão visual em computador, tablet e celular.</p></div>
+      <section class="page" id="page-notificacoes">
+        <div class="section-heading wk-heading"><div><span class="eyebrow">CENTRAL DE ALERTAS</span><h2>Notificações</h2><p>Alertas gerados automaticamente a partir dos dados do sistema: prazos, liberações, não conformidades e ASOs.</p></div><button type="button" class="btn btn-secondary" id="reloadNotifications">↻ Atualizar alertas</button></div>
+        <div class="nt-summary" id="ntSummary"></div>
+        <div class="nt-toolbar">
+          <button type="button" class="nt-chip" data-nt-filter="all" aria-pressed="true">Todos</button>
+          <button type="button" class="nt-chip" data-nt-filter="critico" aria-pressed="false">Críticos</button>
+          <button type="button" class="nt-chip" data-nt-filter="atencao" aria-pressed="false">Atenção</button>
+          <button type="button" class="nt-chip" data-nt-filter="info" aria-pressed="false">Informativos</button>
+          <label class="nt-toggle"><input type="checkbox" id="ntShowIgnored"> Mostrar ignorados</label>
+        </div>
+        <div id="notificationList" class="nt-list"></div>
       </section>
 
-      <section class="page module-placeholder" id="page-configuracoes">
-
-        <div class="module-empty"><span class="module-empty-icon">⚙</span><h2>Área preparada</h2><p>Este módulo já faz parte da estrutura de navegação. Vamos configurar seus recursos em uma próxima etapa, mantendo o mesmo padrão visual em computador, tablet e celular.</p></div>
+      <section class="page" id="page-configuracoes">
+        <div class="section-heading wk-heading"><div><span class="eyebrow">PREFERÊNCIAS DO SISTEMA</span><h2>Configurações</h2><p>Dados da empresa, prazos de segurança, notificações e cópia de segurança dos registros.</p></div></div>
+        <form id="settingsForm" class="cfg-layout">
+          <section class="form-panel">
+            <div class="panel-title"><span class="step-number">01</span><div><h2>Dados da empresa</h2><p>Aparecem no cabeçalho das impressões de PT, APR e checklists.</p></div></div>
+            <div class="form-grid">
+              <label class="field span-2">Razão social / nome da empresa<input name="empresaNome" placeholder="Ex.: Indústria Modelo Ltda."></label>
+              <label class="field">CNPJ<input name="empresaCnpj" placeholder="00.000.000/0000-00"></label>
+              <label class="field">Unidade / contrato<input name="empresaUnidade" placeholder="Ex.: Planta 02"></label>
+              <label class="field span-2">Responsável do SESMT<input name="sesmtResponsavel" placeholder="Nome e cargo"></label>
+            </div>
+          </section>
+          <section class="form-panel">
+            <div class="panel-title"><span class="step-number">02</span><div><h2>Prazos e alertas</h2><p>Definem quando o sistema deve avisar sobre pendências.</p></div></div>
+            <div class="form-grid">
+              <label class="field">Validade padrão da PT (horas)<input name="ptValidade" type="number" min="1" max="720" placeholder="Ex.: 12"></label>
+              <label class="field">Aviso de ASO a vencer (dias)<input name="asoAviso" type="number" min="1" max="365" placeholder="Ex.: 30"></label>
+              <label class="field">Alerta de PT aguardando liberação (horas)<input name="alertaAguardando" type="number" min="1" max="168" placeholder="Ex.: 24"></label>
+              <label class="field">Alerta de não conformidade sem solução (dias)<input name="alertaNaoConformidade" type="number" min="1" max="365" placeholder="Ex.: 7"></label>
+            </div>
+          </section>
+          <section class="form-panel">
+            <div class="panel-title"><span class="step-number">03</span><div><h2>Notificações</h2><p>Escolha quais alertas deseja ver na central de notificações.</p></div></div>
+            <div class="cfg-checks">
+              <label><input type="checkbox" name="notifAso"> ASO vencido ou a vencer</label>
+              <label><input type="checkbox" name="notifAguardando"> PT aguardando liberação</label>
+              <label><input type="checkbox" name="notifVencidas"> PT com prazo de execução vencido</label>
+              <label><input type="checkbox" name="notifNaoconformidade"> Não conformidades abertas</label>
+              <label><input type="checkbox" name="notifApr"> APR em elaboração parada</label>
+              <label><input type="checkbox" name="notifChecklist"> Checklists em preenchimento parados</label>
+            </div>
+            <div class="form-actions"><button type="submit" class="btn btn-primary">Salvar configurações</button></div>
+          </section>
+        </form>
+        <section class="form-panel cfg-backup">
+          <div class="panel-title"><span class="step-number">04</span><div><h2>Cópia de segurança</h2><p>Os registros ficam somente neste navegador. Exporte um arquivo para guardar ou transferir para outro aparelho.</p></div></div>
+          <div class="cfg-backup-grid">
+            <div class="cfg-backup-card"><strong>Exportar tudo</strong><small>Gera um arquivo com PTs, APRs, checklists, trabalhadores e configurações.</small><button type="button" class="btn btn-primary" id="exportData">⇩ Exportar arquivo</button></div>
+            <div class="cfg-backup-card"><strong>Importar arquivo</strong><small>Restaura um backup exportado antes. Substitui os dados atuais.</small><label class="btn btn-secondary cfg-file-btn">⇧ Escolher arquivo<input type="file" id="importData" accept="application/json,.json" hidden></label></div>
+            <div class="cfg-backup-card danger"><strong>Apagar todos os dados</strong><small>Remove PTs, APRs, checklists, trabalhadores e configurações deste navegador.</small><button type="button" class="btn btn-danger" id="wipeData">Apagar tudo</button></div>
+          </div>
+          <p class="cfg-note" id="storageInfo"></p>
+        </section>
       </section>
 
       <footer class="app-footer">TATI SAFE <span>•</span> Segurança e Gestão Inteligente <span>•</span> Versão inicial 0.1</footer>
@@ -250,7 +364,7 @@
       window.setInterval(atualizarDataHora, 1000);
     })();
   </script>
-  <script src="app.js?v=tati-safe-v37"></script>
+  <script src="app.js?v=tati-safe-v41"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
       window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
